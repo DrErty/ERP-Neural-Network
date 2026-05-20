@@ -146,10 +146,14 @@
     <Font Include="font.ttf" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Drawer.cpp" />
+    <ClCompile Include="FlappyBird.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="serialib.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Drawer.h" />
+    <ClInclude Include="FlappyBird.h" />
     <ClInclude Include="serialib.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

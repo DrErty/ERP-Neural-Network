@@ -24,9 +24,21 @@
     <ClCompile Include="serialib.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="FlappyBird.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Drawer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="serialib.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FlappyBird.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Drawer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
