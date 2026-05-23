@@ -28,5 +28,5 @@ namespace Drawer
 	void DrawRect(SDL_Renderer* renderer, float x, float y, float w, float h);
 	void DrawCircle(SDL_Renderer* renderer, float cx, float cy, float rad);
 
-	void DrawSidebar(SDL_Renderer* renderer);
+	void DrawSidebar(SDL_Renderer* renderer, double frameTime, float phase);
 };

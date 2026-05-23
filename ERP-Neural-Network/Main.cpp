@@ -22,7 +22,7 @@ static constexpr double V_THRESHOLD = V_DD / 2.0 * (1.3 / 1.5); // Volt
 static constexpr double V_REFRAC_START = V_DD / 4.0; // Volt
 static constexpr double REFRAC_TIME = 15 / 1000.0; // Seconds
 
-static constexpr double DISPLAY_DT = 1.0 / 60.0; // Seconds
+static constexpr double DISPLAY_DT = 1.0 / 120.0; // Seconds
 static constexpr double SIM_DT = 1 / 200.0; // Seconds
 
 static constexpr uint32_t RING_NEURONS = 6;
@@ -48,6 +48,44 @@ static constexpr size_t SCOPE_BUFFER_SIZE = 200;
 static constexpr float SCOPE_WIDTH = 380.0f;
 static constexpr float SCOPE_HEIGHT = 120.0f;
 static constexpr float SCOPE_MARGIN = 20.0f;
+
+class SpikeEncoder
+{
+public:
+    SpikeEncoder(float maxRateHz = 300.0f, float minRateHz = 0.0f)
+        : m_MaxRate(maxRateHz)
+        , m_MinRate(minRateHz)
+        , m_CurrentRate(0.0f)
+        , m_Phase(0.0f)
+    {}
+
+    void SetValue(float value, float valueMin, float valueMax)
+    {
+        const float normalised = std::clamp((value - valueMin) / (valueMax - valueMin), 0.0f, 1.0f);
+        m_CurrentRate = m_MinRate + normalised * (m_MaxRate - m_MinRate);
+    }
+
+    bool Update(float dt)
+    {
+        if (m_CurrentRate <= 0.0f) return false;
+        m_Phase += m_CurrentRate * dt;
+        if (m_Phase >= 1.0f)
+        {
+            m_Phase -= 1.0f;
+            return true;
+        }
+        return false;
+    }
+
+    void Reset() { m_Phase = 0.0f; }
+    float CurrentRate() const { return m_CurrentRate; }
+    float GetPhase() const { return m_Phase; }
+private:
+    float m_MaxRate;
+    float m_MinRate;
+    float m_CurrentRate;
+    float m_Phase;
+};
 
 struct Neuron
 {
@@ -359,8 +397,9 @@ static void StopSDLTTF()
     TTF_Quit();
 }
 
-static void SerialReadToBuffer(serialib& serial, std::string& buffer)
+static bool SerialReadToBuffer(serialib& serial, std::string& buffer)
 {
+    bool jump = false;
     while (serial.available() > 0)
     {
         char c;
@@ -372,10 +411,15 @@ static void SerialReadToBuffer(serialib& serial, std::string& buffer)
 
         if (c == '\n')
         {
-            std::cout << buffer;
+            if (buffer == "Jump\n")
+            {
+                std::cout << buffer;
+                jump = true;
+            }
             buffer.clear();
         }
     }
+    return jump;
 }
 
 static bool HandleInputs(bool& quit, bool& pause, serialib& serial)
@@ -395,7 +439,6 @@ static bool HandleInputs(bool& quit, bool& pause, serialib& serial)
             if (event.key.key == SDLK_SPACE)
             {
                 jump = true;
-                serial.writeString("Input\n");
             }
         }
     }
@@ -409,7 +452,7 @@ static int StartSim()
     SetupNetwork(network);
 
     serialib serial;
-    serial.openDevice("COM3", 9600);
+    serial.openDevice("COM4", 9600);
 
     std::string rxBuffer;
 
@@ -433,18 +476,24 @@ static int StartSim()
 
     std::mt19937 rng(std::random_device{}());
     FlappyBird game(renderer, Drawer::g_FontMedium, Drawer::g_FontSmall, rng, Drawer::DEFAULT_WINDOW_WIDTH, Drawer::DEFAULT_WINDOW_HEIGHT);
-    int birdIndex = game.AddBird();
+    uint32_t birdIndex = game.AddBird();
+
+    SpikeEncoder spikeEncoder(10.0f, 0.0f);
 
     Uint64 frame_start = SDL_GetPerformanceCounter();
+    double frameTime = 0.0;
+
     while (!quit)
     {
 
         bool jump = HandleInputs(quit, pause, serial);
 
+        bool jumpNeuron = SerialReadToBuffer(serial, rxBuffer);
+
         if (!pause)
         {
-            game.Step();
-            if (jump)
+            game.Step(frameTime);
+            if (jump || jumpNeuron)
             {
                 game.BirdJump(birdIndex);
             }
@@ -453,20 +502,28 @@ static int StartSim()
                 game.Reset();
                 birdIndex = game.AddBird();
             }
+
+            float gapDist = game.BirdGapDist(birdIndex);
+            spikeEncoder.SetValue(-gapDist, -270.0f, 270.0f);
+            bool spike = spikeEncoder.Update(frameTime);
+            if (spike)
+            {
+                serial.writeString("!\n");
+            }
         }
 
-        SerialReadToBuffer(serial, rxBuffer);
-
         game.Render();
-        Drawer::DrawSidebar(renderer);
+        Drawer::DrawSidebar(renderer, frameTime, spikeEncoder.GetPhase());
 
         SDL_RenderPresent(renderer);
 
         {
             Uint64 currentTime = SDL_GetPerformanceCounter();
             double elapsedTime = static_cast<double>(currentTime - frame_start) / static_cast<double>(SDL_GetPerformanceFrequency());
-            if (elapsedTime < DISPLAY_DT)
-                SDL_Delay(static_cast<Uint32>((DISPLAY_DT - elapsedTime) * 1000.0));
+            //if (elapsedTime < DISPLAY_DT)
+            //    SDL_Delay(static_cast<Uint32>((DISPLAY_DT - elapsedTime) * 1000.0));
+
+            frameTime = elapsedTime;
 
             frame_start = SDL_GetPerformanceCounter();
         }
