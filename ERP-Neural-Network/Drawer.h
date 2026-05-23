@@ -3,7 +3,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3_ttf/SDL_ttf.h>
 
-#include <string_view>
+#include "ERP.h"
 
 namespace Drawer
 {
@@ -27,6 +27,4 @@ namespace Drawer
 	void FillRect(SDL_Renderer* renderer, float x, float y, float w, float h);
 	void DrawRect(SDL_Renderer* renderer, float x, float y, float w, float h);
 	void DrawCircle(SDL_Renderer* renderer, float cx, float cy, float rad);
-
-	void DrawSidebar(SDL_Renderer* renderer, double frameTime, float phase);
 };

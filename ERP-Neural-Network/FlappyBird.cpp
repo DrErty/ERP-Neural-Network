@@ -1,10 +1,6 @@
 #include "FlappyBird.h"
 
-#include <algorithm>
-#include <cassert>
-#include <cmath>
-#include <cstdint>
-#include <cstdio>
+#include "ERP.h"
 
 FlappyBird::FlappyBird(SDL_Renderer* renderer,
     TTF_Font* fontLarge,
@@ -38,7 +34,7 @@ uint32_t FlappyBird::AddBird(std::optional<Drawer::Col> color, void* userData)
 
 void FlappyBird::BirdJump(uint32_t index)
 {
-    assert(index < m_Birds.size());
+    Assert(index < m_Birds.size());
     if (m_Birds[index].Alive)
         m_Birds[index].Vy = FLAP_VEL;
 }
@@ -99,6 +95,12 @@ void FlappyBird::Step(float dt)
             }
             bird.Fitness += physDt;
 
+            if (nearestPipe)
+            {
+                float extraScore = std::clamp(1.0f - (std::abs(nearestPipe->GapY - bird.Y) / PIPE_GAP), 0.0f, 1.0f);
+                bird.Fitness += extraScore * physDt * 100.0;
+            }
+
             if (Collides(bird))
             {
                 bird.Alive = false;
@@ -135,6 +137,15 @@ void FlappyBird::Reset()
     m_Done = false;
     m_SimTime = 0.0;
     SpawnPipes();
+}
+
+void FlappyBird::KillBird(uint32_t index)
+{
+    if (m_Birds[index].Alive)
+    {
+        m_Birds[index].Alive = false;
+        --m_AliveCount;
+    }
 }
 
 bool FlappyBird::Collides(const Bird& bird) const
@@ -255,6 +266,7 @@ void FlappyBird::DrawBirds()
         for (const auto& bird : m_Birds)
             if (!bestBird || bird.Fitness > bestBird->Fitness) bestBird = &bird;
 
+#if 0
     for (const auto& bird : m_Birds)
     {
         if (bird.Alive) continue;
@@ -266,24 +278,42 @@ void FlappyBird::DrawBirds()
             });
         Drawer::DrawCircle(m_Renderer, BIRD_X, bird.Y, BIRD_R * 0.55f);
     }
+#endif
 
+    m_SortedBirds.clear();
     for (const auto& bird : m_Birds)
     {
         if (!bird.Alive) continue;
-        const bool isBest = (&bird == bestBird);
+        m_SortedBirds.emplace_back(&bird);
+    }
+
+    std::sort(m_SortedBirds.begin(), m_SortedBirds.end(), [&](const Bird* a, const Bird* b)
+        {
+            return a->Fitness > b->Fitness;
+        });
+
+    uint32_t drawCount = 0;
+    for (const Bird* bird : m_SortedBirds)
+    {
+        if (drawCount > MAX_BIRD_DRAW_COUNT)
+            break;
+
+        const bool isBest = (bird == bestBird);
 
         if (isBest)
         {
             Drawer::SetColor(m_Renderer, { 255, 240, 60, 35 });
-            Drawer::DrawCircle(m_Renderer, BIRD_X, bird.Y, BIRD_R + 10.0f);
+            Drawer::DrawCircle(m_Renderer, BIRD_X, bird->Y, BIRD_R + 10.0f);
         }
 
-        Drawer::SetColor(m_Renderer, isBest ? Drawer::Col{ 255, 230, 60, 235 } : bird.Color);
-        Drawer::DrawCircle(m_Renderer, BIRD_X, bird.Y, BIRD_R);
+        Drawer::SetColor(m_Renderer, isBest ? Drawer::Col{ 255, 230, 60, 235 } : bird->Color);
+        Drawer::DrawCircle(m_Renderer, BIRD_X, bird->Y, BIRD_R);
 
         Drawer::SetColor(m_Renderer, { 10, 10, 20, 255 });
-        Drawer::DrawCircle(m_Renderer, BIRD_X + 7.0f, bird.Y - 6.0f, 4.0f);
+        Drawer::DrawCircle(m_Renderer, BIRD_X + 7.0f, bird->Y - 6.0f, 4.0f);
         Drawer::SetColor(m_Renderer, { 255, 255, 255, 255 });
-        Drawer::DrawCircle(m_Renderer, BIRD_X + 8.0f, bird.Y - 7.0f, 2.0f);
+        Drawer::DrawCircle(m_Renderer, BIRD_X + 8.0f, bird->Y - 7.0f, 2.0f);
+
+        drawCount++;
     }
 }

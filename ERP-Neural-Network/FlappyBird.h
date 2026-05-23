@@ -1,7 +1,6 @@
 #pragma once
 
-#include <SDL3/SDL.h>
-#include <SDL3_ttf/SDL_ttf.h>
+#include "ERP.h"
 
 #include <array>
 #include <cstdint>
@@ -24,7 +23,9 @@ public:
     static constexpr float BIRD_X = 240.0f;
     static constexpr float BIRD_R = 21.0f;
     static constexpr uint32_t N_PIPES = 4;
-    static constexpr uint32_t PHYS_STEPS = 16;
+    static constexpr uint32_t PHYS_STEPS = 4;
+
+    static constexpr uint32_t MAX_BIRD_DRAW_COUNT = 20;
 
     FlappyBird(SDL_Renderer* renderer,
         TTF_Font* fontLarge,
@@ -56,13 +57,13 @@ public:
 
     void Step(float dt = 1.0f / 60.0f);
     void Render();
-    void PresentFrame() { SDL_RenderPresent(m_Renderer); }
 
     bool IsDone() const { return m_Done; }
     double SimTime() const { return m_SimTime; }
     double BestLiveFitness() const;
 
     void Reset();
+    void KillBird(uint32_t index);
 
     uint32_t WinW() const { return m_WinW; }
     uint32_t WinH() const { return m_WinH; }
@@ -110,6 +111,7 @@ private:
     float m_GroundY;
 
     std::vector<Bird> m_Birds;
+    std::vector<const Bird*> m_SortedBirds;
     std::vector<Pipe> m_Pipes;
 
     uint32_t m_AliveCount = 0;
