@@ -1,5 +1,23 @@
 #include "Neuron.h"
 
+void SpikeEncoder::SetValue(float value, float valueMin, float valueMax)
+{
+    const float normalised = std::clamp((value - valueMin) / (valueMax - valueMin), 0.0f, 1.0f);
+    m_CurrentRate = m_MinRate + normalised * (m_MaxRate - m_MinRate);
+}
+
+bool SpikeEncoder::Update(float dt)
+{
+    if (m_CurrentRate <= 0.0f) return false;
+    m_Phase += m_CurrentRate * dt;
+    if (m_Phase >= 1.0f)
+    {
+        m_Phase -= 1.0f;
+        return true;
+    }
+    return false;
+}
+
 bool ConnectNeurons(NeuralNetwork& network, int8_t inputNeuron, int8_t outputNeuron, double weight)
 {
     int32_t outputSyn = -1;

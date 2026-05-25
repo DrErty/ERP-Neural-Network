@@ -2,14 +2,8 @@
 
 #include "ERP.h"
 
-#include <array>
-#include <cstdint>
-#include <optional>
-#include <random>
-#include <string>
-#include <vector>
-
 #include "Drawer.h"
+#include "Neuron.h"
 
 class FlappyBird
 {
@@ -27,49 +21,27 @@ public:
 
     static constexpr uint32_t MAX_BIRD_DRAW_COUNT = 20;
 
-    FlappyBird(SDL_Renderer* renderer,
-        TTF_Font* fontLarge,
-        TTF_Font* fontSmall,
-        std::mt19937& rng,
-        uint32_t winW = Drawer::DEFAULT_WINDOW_WIDTH,
-        uint32_t winH = Drawer::DEFAULT_WINDOW_HEIGHT);
+    FlappyBird(SDL_Renderer* renderer, std::mt19937& rng, uint32_t gameHeight = Drawer::DEFAULT_WINDOW_HEIGHT, uint32_t gameWidth = Drawer::DEFAULT_WINDOW_WIDTH);
 
-    uint32_t AddBird(std::optional<Drawer::Col> color = std::nullopt, void* userData = nullptr);
+    uint32_t AddPlayer();
 
-    void BirdJump(uint32_t index);
+    void Action(uint32_t playerIndex, uint32_t outputIndex);
+    float GetInput(uint32_t playerIndex, uint32_t inputIndex) const;
 
-    float BirdY(uint32_t index) const { return m_Birds[index].Y; }
-    float BirdVy(uint32_t index) const { return m_Birds[index].Vy; }
-    bool BirdAlive(uint32_t index) const { return m_Birds[index].Alive; }
-    double BirdFitness(uint32_t index) const { return m_Birds[index].Fitness; }
-    uint32_t BirdPipes(uint32_t index) const { return m_Birds[index].PipesCleared; }
-    void* BirdUserData(uint32_t index) const { return m_Birds[index].UserData; }
-    Drawer::Col BirdColor(uint32_t index) const { return m_Birds[index].Color; }
-    float BirdGapDist(uint32_t index) const;
+    bool PlayerAlive(uint32_t playerIndex) const { return m_Birds[playerIndex].Alive; }
+    double PlayerFitness(uint32_t playerIndex) const { return m_Birds[playerIndex].Fitness; }
 
-    uint32_t BirdCount() const { return (uint32_t)m_Birds.size(); }
+    uint32_t PlayerCount() const { return (uint32_t)m_Birds.size(); }
     uint32_t AliveCount() const { return m_AliveCount; }
 
-    bool HasNearestPipe() const;
-    float NearestPipeGapY() const;
-    float NearestPipeX() const;
-    float NearestPipeDist() const;
-
-    void Step(float dt = 1.0f / 60.0f);
+    void Step(float dt);
     void Render();
 
     bool IsDone() const { return m_Done; }
-    double SimTime() const { return m_SimTime; }
-    double BestLiveFitness() const;
+    double GetSimTime() const { return m_SimTime; }
 
     void Reset();
-    void KillBird(uint32_t index);
-
-    uint32_t WinW() const { return m_WinW; }
-    uint32_t WinH() const { return m_WinH; }
-    uint32_t GameW() const { return m_GameW; }
-    float GroundY() const { return m_GroundY; }
-
+    void KillPlayer(uint32_t playerIndex);
 private:
     struct Pipe
     {
@@ -86,8 +58,6 @@ private:
         bool Alive = true;
         double Fitness = 0.0;
         uint32_t PipesCleared = 0;
-        Drawer::Col Color = { 100, 255, 150, 220 };
-        void* UserData = nullptr;
     };
 
     bool Collides(const Bird& bird) const;
@@ -95,7 +65,6 @@ private:
     void AdvancePipes(float dt);
     Pipe* NearestPipe();
     const Pipe* NearestPipeConst() const;
-    Drawer::Col RandomColor();
 
     void DrawSky();
     void DrawGround();
@@ -103,11 +72,9 @@ private:
     void DrawBirds();
 
     SDL_Renderer* m_Renderer;
-    TTF_Font* m_FontLarge;
-    TTF_Font* m_FontSmall;
     std::mt19937& m_Rng;
 
-    uint32_t m_WinW, m_WinH, m_GameW;
+    uint32_t m_GameHeight, m_GameWidth;
     float m_GroundY;
 
     std::vector<Bird> m_Birds;

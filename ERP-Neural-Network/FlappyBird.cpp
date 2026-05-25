@@ -2,70 +2,56 @@
 
 #include "ERP.h"
 
-FlappyBird::FlappyBird(SDL_Renderer* renderer,
-    TTF_Font* fontLarge,
-    TTF_Font* fontSmall,
-    std::mt19937& rng,
-    uint32_t winW,
-    uint32_t winH)
+FlappyBird::FlappyBird(SDL_Renderer* renderer, std::mt19937& rng, uint32_t gameHeight, uint32_t gameWidth)
     : m_Renderer(renderer)
-    , m_FontLarge(fontLarge)
-    , m_FontSmall(fontSmall)
     , m_Rng(rng)
-    , m_WinW(winW)
-    , m_WinH(winH)
-    , m_GroundY((float)winH - 90.0f)
-    , m_GameW(winW)
+    , m_GameHeight(gameHeight)
+    , m_GameWidth(gameWidth)
+    , m_GroundY(static_cast<float>(gameHeight) - 90.0f)
 {
     SpawnPipes();
 }
 
-uint32_t FlappyBird::AddBird(std::optional<Drawer::Col> color, void* userData)
+uint32_t FlappyBird::AddPlayer()
 {
-    const uint32_t index = (uint32_t)m_Birds.size();
+    const uint32_t playerIndex = (uint32_t)m_Birds.size();
     Bird bird;
-    bird.Y = (float)m_WinH * 0.45f;
-    bird.Color = color.value_or(RandomColor());
-    bird.UserData = userData;
+    bird.Y = (float)m_GameHeight * 0.45f;
     m_Birds.push_back(std::move(bird));
     ++m_AliveCount;
-    return index;
+    return playerIndex;
 }
 
-void FlappyBird::BirdJump(uint32_t index)
+void FlappyBird::Action(uint32_t playerIndex, uint32_t outputIndex)
 {
-    Assert(index < m_Birds.size());
-    if (m_Birds[index].Alive)
-        m_Birds[index].Vy = FLAP_VEL;
+    Assert(playerIndex < m_Birds.size());
+    Assert(outputIndex < OUTPUT_NEURONS);
+
+    if (outputIndex == 0)
+    {
+        if (m_Birds[playerIndex].Alive)
+            m_Birds[playerIndex].Vy = FLAP_VEL;
+    }
 }
 
-float FlappyBird::BirdGapDist(uint32_t index) const
+float FlappyBird::GetInput(uint32_t playerIndex, uint32_t inputIndex) const
 {
-    const Pipe* const nearestPipe = NearestPipeConst();
-    if (!nearestPipe) return 0.0f;
-    return nearestPipe->GapY - m_Birds[index].Y;
-}
+    Assert(playerIndex < m_Birds.size());
 
-bool FlappyBird::HasNearestPipe() const
-{
-    return NearestPipeConst() != nullptr;
-}
-
-float FlappyBird::NearestPipeGapY() const
-{
-    const Pipe* const nearestPipe = NearestPipeConst();
-    return nearestPipe ? nearestPipe->GapY : (float)m_WinH * 0.5f;
-}
-
-float FlappyBird::NearestPipeX() const
-{
-    const Pipe* const nearestPipe = NearestPipeConst();
-    return nearestPipe ? nearestPipe->X : (float)m_GameW + PIPE_SPACING;
-}
-
-float FlappyBird::NearestPipeDist() const
-{
-    return NearestPipeX() - BIRD_X;
+    if (inputIndex == 0)
+    {
+        const Pipe* const nearestPipe = NearestPipeConst();
+        if (!nearestPipe) return 0.0f;
+        return nearestPipe->GapY - m_Birds[playerIndex].Y;
+    }
+    if (inputIndex == 1)
+    {
+        return m_Birds[playerIndex].Vy;
+    }
+    if (inputIndex == 2)
+    {
+        return -m_Birds[playerIndex].Vy;
+    }
 }
 
 void FlappyBird::Step(float dt)
@@ -122,14 +108,6 @@ void FlappyBird::Render()
     DrawBirds();
 }
 
-double FlappyBird::BestLiveFitness() const
-{
-    double best = 0.0;
-    for (const auto& bird : m_Birds)
-        if (bird.Alive) best = std::max(best, bird.Fitness);
-    return best;
-}
-
 void FlappyBird::Reset()
 {
     m_Birds.clear();
@@ -139,11 +117,11 @@ void FlappyBird::Reset()
     SpawnPipes();
 }
 
-void FlappyBird::KillBird(uint32_t index)
+void FlappyBird::KillPlayer(uint32_t playerIndex)
 {
-    if (m_Birds[index].Alive)
+    if (m_Birds[playerIndex].Alive)
     {
-        m_Birds[index].Alive = false;
+        m_Birds[playerIndex].Alive = false;
         --m_AliveCount;
     }
 }
@@ -166,7 +144,7 @@ void FlappyBird::SpawnPipes()
     m_Pipes.clear();
     std::uniform_real_distribution<float> yDistrib(270.0f, m_GroundY - 270.0f);
     for (uint32_t pipeIndex = 0; pipeIndex < N_PIPES; ++pipeIndex)
-        m_Pipes.push_back({ (float)m_GameW + 150.0f + pipeIndex * PIPE_SPACING, yDistrib(m_Rng), false });
+        m_Pipes.push_back({ (float)m_GameWidth + 150.0f + pipeIndex * PIPE_SPACING, yDistrib(m_Rng), false });
 }
 
 void FlappyBird::AdvancePipes(float dt)
@@ -206,38 +184,28 @@ const FlappyBird::Pipe* FlappyBird::NearestPipeConst() const
     return nearestPipe;
 }
 
-Drawer::Col FlappyBird::RandomColor()
-{
-    static const Drawer::Col palette[] = {
-        {100, 220, 140, 210}, {100, 180, 255, 210}, {255, 180, 80, 210},
-        {200, 100, 255, 210}, {255, 120, 140, 210}, {80, 220, 200, 210},
-    };
-    std::uniform_int_distribution<uint32_t> dist(0, 5);
-    return palette[dist(m_Rng)];
-}
-
 void FlappyBird::DrawSky()
 {
-    for (uint32_t y = 0; y < m_WinH; ++y)
+    for (uint32_t y = 0; y < m_GameHeight; ++y)
     {
-        const float factor = (float)y / (float)m_WinH;
+        const float factor = (float)y / (float)m_GameHeight;
         SDL_SetRenderDrawColor(m_Renderer,
             static_cast<uint8_t>(18.0f + factor * 8.0f),
             static_cast<uint8_t>(22.0f + factor * 12.0f),
             static_cast<uint8_t>(45.0f + factor * 18.0f),
             255);
-        SDL_RenderLine(m_Renderer, 0.0f, (float)y, (float)m_GameW, (float)y);
+        SDL_RenderLine(m_Renderer, 0.0f, (float)y, (float)m_GameWidth, (float)y);
     }
 }
 
 void FlappyBird::DrawGround()
 {
     Drawer::SetColor(m_Renderer, { 40, 160, 60, 255 });
-    Drawer::FillRect(m_Renderer, 0.0f, m_GroundY, (float)m_GameW, (float)m_WinH - m_GroundY);
+    Drawer::FillRect(m_Renderer, 0.0f, m_GroundY, (float)m_GameWidth, (float)m_GameHeight - m_GroundY);
     Drawer::SetColor(m_Renderer, { 30, 120, 45, 255 });
-    Drawer::FillRect(m_Renderer, 0.0f, m_GroundY, (float)m_GameW, 12.0f);
+    Drawer::FillRect(m_Renderer, 0.0f, m_GroundY, (float)m_GameWidth, 12.0f);
     Drawer::SetColor(m_Renderer, { 50, 180, 70, 60 });
-    for (float groundX = 0.0f; groundX < (float)m_GameW; groundX += 45.0f)
+    for (float groundX = 0.0f; groundX < (float)m_GameWidth; groundX += 45.0f)
         SDL_RenderLine(m_Renderer, groundX, m_GroundY + 12.0f, groundX + 22.0f, m_GroundY + 30.0f);
 }
 
@@ -298,15 +266,7 @@ void FlappyBird::DrawBirds()
         if (drawCount > MAX_BIRD_DRAW_COUNT)
             break;
 
-        const bool isBest = (bird == bestBird);
-
-        if (isBest)
-        {
-            Drawer::SetColor(m_Renderer, { 255, 240, 60, 35 });
-            Drawer::DrawCircle(m_Renderer, BIRD_X, bird->Y, BIRD_R + 10.0f);
-        }
-
-        Drawer::SetColor(m_Renderer, isBest ? Drawer::Col{ 255, 230, 60, 235 } : bird->Color);
+        Drawer::SetColor(m_Renderer, Drawer::Col{ 255, 230, 60, 235 });
         Drawer::DrawCircle(m_Renderer, BIRD_X, bird->Y, BIRD_R);
 
         Drawer::SetColor(m_Renderer, { 10, 10, 20, 255 });

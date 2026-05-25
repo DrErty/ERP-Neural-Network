@@ -17,30 +17,12 @@ static constexpr uint32_t TOTAL_NEURONS = INPUT_NEURONS + HIDDEN_NEURONS + OUTPU
 class SpikeEncoder
 {
 public:
-    SpikeEncoder(float maxRate, float minRate)
-        : m_MaxRate(maxRate)
-        , m_MinRate(minRate)
-        , m_CurrentRate(0.0f)
-        , m_Phase(0.0f)
-    {}
+    SpikeEncoder(float maxRate = 1.0f / static_cast<float>(REFRAC_TIME), float minRate = 0.0f)
+        : m_MaxRate(maxRate), m_MinRate(minRate), m_CurrentRate(0.0f), m_Phase(0.0f) {}
 
-    void SetValue(float value, float valueMin, float valueMax)
-    {
-        const float normalised = std::clamp((value - valueMin) / (valueMax - valueMin), 0.0f, 1.0f);
-        m_CurrentRate = m_MinRate + normalised * (m_MaxRate - m_MinRate);
-    }
+    void SetValue(float value, float valueMin, float valueMax);
 
-    bool Update(float dt)
-    {
-        if (m_CurrentRate <= 0.0f) return false;
-        m_Phase += m_CurrentRate * dt;
-        if (m_Phase >= 1.0f)
-        {
-            m_Phase -= 1.0f;
-            return true;
-        }
-        return false;
-    }
+    bool Update(float dt);
 
     void Reset() { m_Phase = 0.0f; }
     float CurrentRate() const { return m_CurrentRate; }
@@ -58,9 +40,9 @@ struct Neuron
     std::array<double, MAX_INPUTS> I_in = {}; // 0 to 1
 
     double V_mem = 0.0; // Volt
-    double Tau_mem = 0.73; // Seconds
-    double Tau_syn = 0.07; // Seconds
-    double V_leak = 0.656; // Volt
+    double Tau_mem = 0.1; // Seconds
+    double Tau_syn = 0.02; // Seconds
+    double V_leak = 0.0; // Volt
     double V_threshold = V_DD / 2.0 * (1.3 / 1.5); // Volt
 
     double RefracTime = 0.0;
@@ -72,13 +54,6 @@ struct Neuron
 struct NeuralNetwork
 {
     std::array<Neuron, TOTAL_NEURONS> Neurons = {};
-};
-
-struct InputState
-{
-    SpikeEncoder GapDistancePositive = { 1.0 / REFRAC_TIME, 0.0f };
-    SpikeEncoder GapDistanceNegative = { 1.0 / REFRAC_TIME, 0.0f };
-    SpikeEncoder VerticalVelocity = { 1.0 / REFRAC_TIME, 0.0f };
 };
 
 bool ConnectNeurons(NeuralNetwork& network, int8_t inputNeuron, int8_t outputNeuron, double weight);

@@ -132,41 +132,6 @@ static void DrawScope(SDL_Renderer* renderer, const ScopeBuffer& buf, float x, f
 }
 */
 
-static void DrawConnection(SDL_Renderer* renderer, SDL_FPoint from, SDL_FPoint to, double weight)
-{
-    if (weight < 0.0)
-        SDL_SetRenderDrawColor(renderer , 120, 120, 230, 200);
-    else
-        SDL_SetRenderDrawColor(renderer , 230, 120, 120, 200);
-
-    SDL_RenderLine(renderer , from.x, from.y, to.x, to.y);
-
-    Drawer::Col labelColor = { 160, 160, 170, 255 };
-    std::array<char, 16> label = {};
-    std::snprintf(label.data(), sizeof(char) * label.size(), "%.1fV", weight);
-    Drawer::DrawTextSlow(renderer, label.data(), (from.x + to.x) / 2.0f, (from.y + to.y) / 2.0f, labelColor, Drawer::g_FontSmall, true);
-
-    const float dx = to.x - from.x;
-    const float dy = to.y - from.y;
-    const float len = std::sqrt(dx * dx + dy * dy);
-    if (len < 1.0f) return;
-    const float ux = dx / len;
-    const float uy = dy / len;
-    const float arrowLen = 20.0f;
-    const float arrowWid = 10.0f;
-
-    const float tipX = to.x - ux * (NEURON_SIZE * 0.5f);
-    const float tipY = to.y - uy * (NEURON_SIZE * 0.5f);
-    const float baseX = tipX - ux * arrowLen;
-    const float baseY = tipY - uy * arrowLen;
-
-    const float px = -uy;
-    const float py = ux;
-
-    SDL_RenderLine(renderer , tipX, tipY, baseX + px * arrowWid, baseY + py * arrowWid);
-    SDL_RenderLine(renderer , tipX, tipY, baseX - px * arrowWid, baseY - py * arrowWid);
-}
-
 struct Renderer
 {
     SDL_Renderer* Renderer;
@@ -260,9 +225,6 @@ static void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const Indiv
     Drawer::DrawTextSlow(renderer, "Alive", posX, posY, { 120, 140, 180, 200 }, Drawer::g_FontSmall);
     posY += 20.0f;
 
-    uint32_t aliveCount = game.AliveCount();
-    uint32_t birdCount = game.BirdCount();
-
     uint32_t individualsAlive = 0;
     for (auto& individual : individuals)
     {
@@ -272,7 +234,7 @@ static void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const Indiv
         }
     }
 
-    const float aliveFraction = birdCount > 0 ? (float)aliveCount / (float)birdCount : 0.0f;
+    const float aliveFraction = individualsAlive > 0 ? static_cast<float>(individualsAlive) / static_cast<float>(MAX_INDIVIDUALS) : 0.0f;
 
     Drawer::SetColor(renderer, { 25, 30, 55, 255 });
     Drawer::FillRect(renderer, posX, posY, barWidth, 20.0f);
@@ -282,7 +244,7 @@ static void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const Indiv
     for (uint32_t tickIndex = 1; tickIndex < 10; ++tickIndex)
         Drawer::FillRect(renderer, posX + barWidth * (float)tickIndex * 0.1f - 0.5f, posY, 1.0f, 20.0f);
     posY += 28.0f;
-    Drawer::DrawTextSlow(renderer, std::to_string(aliveCount) + " / " + std::to_string(birdCount) + ", Individuals alive: " + std::to_string(individualsAlive), posX, posY, {160, 200, 255, 220}, Drawer::g_FontSmall);
+    Drawer::DrawTextSlow(renderer, std::to_string(individualsAlive) + " / " + std::to_string(MAX_INDIVIDUALS), posX, posY, {160, 200, 255, 220}, Drawer::g_FontSmall);
     posY += 28.0f;
 
     Drawer::DrawTextSlow(renderer, "Best fitness", posX, posY, { 120, 140, 180, 200 }, Drawer::g_FontSmall);
@@ -335,9 +297,10 @@ static void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const Indiv
 
     const auto& spikeEncoderRange = bestIndividual.Genome.SpikeEncoderRange;
 
-    addPhase(bestIndividual.Players[0].InputState.GapDistancePositive.GetPhase(), spikeEncoderRange[0].Min, spikeEncoderRange[0].Max);
-    addPhase(bestIndividual.Players[0].InputState.GapDistanceNegative.GetPhase(), spikeEncoderRange[1].Min, spikeEncoderRange[1].Max);
-    addPhase(bestIndividual.Players[0].InputState.VerticalVelocity.GetPhase(), spikeEncoderRange[2].Min, spikeEncoderRange[2].Max);
+    for (uint32_t i = 0; i < INPUT_NEURONS; i++)
+    {
+        addPhase(bestIndividual.Players[0].InputState[i].GetPhase(), spikeEncoderRange[i].Min, spikeEncoderRange[i].Max);
+    }
 
     if (history.size() > 1)
     {
@@ -577,6 +540,7 @@ struct GameState
     bool Quit = false;
     bool SpeedUp = false;
     bool Render = true;
+    bool Skip = false;
     uint32_t Generation = 0;
 
     double Sigma = INITIAL_SIGMA;
@@ -597,6 +561,8 @@ static void HandleGameInputs(GameState& gameState)
                 gameState.SpeedUp = !gameState.SpeedUp;
             if (event.key.key == SDLK_R)
                 gameState.Render = !gameState.Render;
+            if (event.key.key == SDLK_P)
+                gameState.Skip = true;
         }
     }
 }
@@ -624,7 +590,10 @@ static void StartTraining(const Renderer& renderer, FlappyBird& game, std::mt199
             if (lastBestIndividual)
             {
                 lastBestIndividual->Genome.Print();
+                std::cout << "Fitness: " << lastBestIndividual->EvaluateFitness(game) << std::endl;
             }
+
+            const double alpha = std::clamp(static_cast<double>(gameState.Generation) / 1.0, 0.0, 1.0);
 
             const double bestFitness = lastBestIndividual ? lastBestIndividual->EvaluateFitness(game) : 0.0;
             if (bestFitness > lastBestFitness * 0.9)
@@ -633,6 +602,7 @@ static void StartTraining(const Renderer& renderer, FlappyBird& game, std::mt199
                 gameState.Sigma /= 0.9;
 
             std::cout << "Sigma: " << gameState.Sigma << std::endl;
+            std::cout << "Alpha: " << alpha << std::endl;
 
             lastBestFitness = bestFitness;
 
@@ -643,34 +613,50 @@ static void StartTraining(const Renderer& renderer, FlappyBird& game, std::mt199
 
             game.Reset();
 
-            constexpr uint32_t mu = 100;
+            constexpr uint32_t mu = 10;
             std::vector<Individual> nextIndividuals;
 
             std::uniform_int_distribution<int> randomDistribution(0, mu - 1);
-            for (uint32_t i = 0; i < MAX_INDIVIDUALS; i++)
+            std::uniform_real_distribution<float> continuousDistribution(0.0f, 1.0f);
+            for (uint32_t individualIndex = 0; individualIndex < MAX_INDIVIDUALS; individualIndex++)
             {
                 Individual& individual = nextIndividuals.emplace_back();
                 for (auto& player : individual.Players)
                 {
-                    uint32_t birdIndex = game.AddBird();
-                    player.BirdIndex = birdIndex;
+                    uint32_t birdIndex = game.AddPlayer();
+                    player.PlayerIndex = birdIndex;
                 }
-                if (individuals.size() >= mu)
+
+                if (individualIndex >= mu)
                 {
-                    individual.Genome = individuals[randomDistribution(rng)].Genome;
+                    if (individuals.size() >= mu)
+                    {
+                        if (continuousDistribution(rng) <= CROSSOVER_CHANCE)
+                        {
+                            const Genome& genomeA = individuals[randomDistribution(rng)].Genome;
+                            const Genome& genomeB = individuals[randomDistribution(rng)].Genome;
+
+                            individual.Genome = CrossoverGenome(genomeA, genomeB, rng);
+                        }
+                        else
+                        {
+                            individual.Genome = individuals[randomDistribution(rng)].Genome;
+                        }
+                    }
+
+                    individual.Genome.Mutate(rng, gameState.Sigma);
                 }
-                
-                // Keep top mu
-                if (i >= mu)
+                else
                 {
-                    Mutate(individual, rng, gameState.Sigma);
+                    individual.Genome = individuals[individualIndex].Genome;
                 }
+
                 ConstructNetwork(individual);
 
                 for (auto& player : individual.Players)
                 {
                     player.Network = individual.BaseNetwork;
-                    VaryNetwork(player.Network, rng);
+                    VaryNetwork(player.Network, rng, alpha);
                 }
             }
             individuals = std::move(nextIndividuals);
@@ -691,8 +677,9 @@ static void StartTraining(const Renderer& renderer, FlappyBird& game, std::mt199
         game.Step(SIM_DT);
 
         // New generation
-        if (game.IsDone())
+        if (game.IsDone() || gameState.Skip || game.GetSimTime() > 240.0)
         {
+            gameState.Skip = false;
             startGeneration();
         }
 
@@ -711,25 +698,20 @@ static void StartTraining(const Renderer& renderer, FlappyBird& game, std::mt199
 
             for (auto& player : individual.Players)
             {
-                if (!game.BirdAlive(player.BirdIndex))
+                if (!game.PlayerAlive(player.PlayerIndex))
                 {
-#if 1
                     for (auto& otherPlayer : individual.Players)
-                    {
-                        game.KillBird(otherPlayer.BirdIndex);
-                    }
-                    break;
-#else
-                    individual.Alive = false;
-                    continue;
-#endif
-                }
+                        game.KillPlayer(otherPlayer.PlayerIndex);
 
-                float gapDistance = game.BirdGapDist(player.BirdIndex) / (FlappyBird::PIPE_GAP / 4.0f);
-                float verticalVelocity = game.BirdVy(player.BirdIndex) / (-FlappyBird::FLAP_VEL);
-                player.InputState.GapDistancePositive.SetValue(gapDistance, spikeEncoderRange[0].Min, spikeEncoderRange[0].Max);
-                player.InputState.GapDistanceNegative.SetValue(-gapDistance, spikeEncoderRange[1].Min, spikeEncoderRange[1].Max);
-                player.InputState.VerticalVelocity.SetValue(verticalVelocity, spikeEncoderRange[2].Min, spikeEncoderRange[2].Max);
+                    individual.Alive = false;
+                    break;
+                }
+                
+                for (uint32_t inputIndex = 0; inputIndex < INPUT_NEURONS; inputIndex++)
+                {
+                    float input = game.GetInput(player.PlayerIndex, inputIndex);
+                    player.InputState[inputIndex].SetValue(input, spikeEncoderRange[inputIndex].Min, spikeEncoderRange[inputIndex].Max);
+                }
 
                 // TODO: Fix whatever this code is
 
@@ -739,37 +721,23 @@ static void StartTraining(const Renderer& renderer, FlappyBird& game, std::mt199
 
                     constexpr double inputWeight = 10.0;
 
+                    for (uint32_t inputIndex = 0; inputIndex < INPUT_NEURONS; inputIndex++)
                     {
-                        bool spike = player.InputState.GapDistancePositive.Update(substepDeltaTime);
+                        bool spike = player.InputState[inputIndex].Update(substepDeltaTime);
                         if (spike)
                         {
-                            player.Network.Neurons[0].I_in[0] += 1.0;
-                            player.Network.Neurons[0].Weights[0] = inputWeight;
-                        }
-                    }
-                    {
-                        bool spike = player.InputState.GapDistanceNegative.Update(substepDeltaTime);
-                        if (spike)
-                        {
-                            player.Network.Neurons[1].I_in[0] += 1.0;
-                            player.Network.Neurons[1].Weights[0] = inputWeight;
-                        }
-                    }
-                    {
-                        bool spike = player.InputState.VerticalVelocity.Update(substepDeltaTime);
-                        if (spike)
-                        {
-                            player.Network.Neurons[2].I_in[0] += 1.0;
-                            player.Network.Neurons[2].Weights[0] = inputWeight;
+                            player.Network.Neurons[inputIndex].I_in[0] += 1.0;
+                            player.Network.Neurons[inputIndex].Weights[0] = inputWeight;
                         }
                     }
 
                     std::vector<uint8_t> neuronsFired = UpdateNetwork(player.Network, substepDeltaTime);
                     for (uint8_t neuronIndex : neuronsFired)
                     {
-                        if (neuronIndex == TOTAL_NEURONS - 1)
+                        const int32_t outputIndex = neuronIndex - INPUT_NEURONS - HIDDEN_NEURONS;
+                        if (outputIndex >= 0 && outputIndex < OUTPUT_NEURONS)
                         {
-                            game.BirdJump(player.BirdIndex);
+                            game.Action(player.PlayerIndex, outputIndex);
                         }
                     }
                 }
@@ -860,7 +828,7 @@ int main(int argc, char* argv[])
 
     const Renderer renderer = StartSDL();
     std::mt19937 rng(std::random_device{}());
-    FlappyBird game(renderer.Renderer, Drawer::g_FontMedium, Drawer::g_FontSmall, rng, Drawer::DEFAULT_WINDOW_WIDTH, Drawer::DEFAULT_WINDOW_HEIGHT);
+    FlappyBird game(renderer.Renderer, rng);
 
     //StartSim(renderer, game);
     StartTraining(renderer, game, rng);
