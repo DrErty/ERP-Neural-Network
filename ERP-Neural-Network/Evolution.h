@@ -2,9 +2,10 @@
 
 #include "ERP.h"
 #include "Neuron.h"
-#include "FlappyBird.h"
+#include "Game.h"
 
-static constexpr uint32_t MAX_INDIVIDUALS = 200;
+static constexpr uint32_t MAX_INDIVIDUALS = 1024;
+static constexpr uint32_t EVOLUTION_MU = 8;
 static constexpr uint32_t EVALUTIONS_PER_GENOME = 5;
 static constexpr double INITIAL_SIGMA = 5.0;
 static constexpr uint32_t TOTAL_WEIGHTS = INPUT_NEURONS * HIDDEN_NEURONS + HIDDEN_NEURONS * OUTPUT_NEURONS;
@@ -15,6 +16,13 @@ struct Range
 {
     double Min = 0.0;
     double Max = 1.0;
+};
+
+struct Connection
+{
+    double Weight = 0.0;
+    int32_t InputNeuron = -1;
+    int32_t OutputNeuron = -1;
 };
 
 struct Genome
@@ -41,7 +49,7 @@ struct Individual
     NeuralNetwork BaseNetwork = {};
     bool Alive = true;
 
-    double EvaluateFitness(const FlappyBird& game) const;
+    double EvaluateFitness(const Game& game) const;
 };
 
 Genome CrossoverGenome(const Genome& genomeA, const Genome& genomeB, std::mt19937& rng);

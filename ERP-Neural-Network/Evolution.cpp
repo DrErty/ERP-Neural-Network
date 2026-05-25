@@ -30,7 +30,7 @@ void Genome::Mutate(std::mt19937& rng, double sigma)
     for (double& weight : Weights)
     {
         weight += normalDistribution(rng);
-        weight = std::clamp(weight, -10.0, 10.0);
+        weight = std::clamp(weight, -20.0, 20.0);
     }
 
     for (double& vLeak : VLeaks)
@@ -38,7 +38,7 @@ void Genome::Mutate(std::mt19937& rng, double sigma)
         vLeak += vLeakDistribution(rng);
         vLeak = std::clamp(vLeak, 0.0, V_DD);
     }
-#if 1
+#if 0
     for (Range& range : SpikeEncoderRange)
     {
         range.Min += normalDistribution(rng);
@@ -56,7 +56,7 @@ void Genome::Mutate(std::mt19937& rng, double sigma)
 #endif
 }
 
-double Individual::EvaluateFitness(const FlappyBird& game) const
+double Individual::EvaluateFitness(const Game& game) const
 {
     double totalFitness = 0.0;
     for (const Player& player : Players)
@@ -73,7 +73,7 @@ double Individual::EvaluateFitness(const FlappyBird& game) const
             lowestFitness = fitness;
     }
 
-    constexpr double alpha = 0.9;
+    constexpr double alpha = 1.0;
     return lowestFitness * alpha + (1.0 - alpha) * totalFitness / static_cast<double>(EVALUTIONS_PER_GENOME);
 }
 
@@ -97,6 +97,9 @@ void ConstructNetwork(Individual& individual)
 {
     NeuralNetwork& network = individual.BaseNetwork;
     const Genome& genome = individual.Genome;
+
+    for (uint32_t i = 0; i < INPUT_NEURONS; i++)
+        network.Neurons[i].Inactive = true;
 
     uint32_t weightCount = 0;
     for (uint32_t i = 0; i < INPUT_NEURONS; i++)

@@ -8,6 +8,7 @@
 
 #include "Drawer.h"
 #include "FlappyBird.h"
+#include "CartPole.h"
 #include "Neuron.h"
 #include "Evolution.h"
 
@@ -19,118 +20,6 @@ static constexpr float NEURON_SIZE = 80.0f;
 static constexpr float METER_WIDTH = NEURON_SIZE;
 static constexpr float METER_HEIGHT = 16.0f;
 static constexpr float METER_GAP = 8.0f;
-
-static constexpr uint32_t SCOPE_COUNT = 1;
-static constexpr size_t SCOPE_BUFFER_SIZE = 200;
-static constexpr float SCOPE_WIDTH = 380.0f;
-static constexpr float SCOPE_HEIGHT = 120.0f;
-static constexpr float SCOPE_MARGIN = 20.0f;
-
-struct ScopeBuffer
-{
-    std::array<double, SCOPE_BUFFER_SIZE> Samples = {};
-    size_t Head = 0;
-    size_t Count = 0;
-};
-
-// Written by Claude
-static void ScopePush(ScopeBuffer& buf, double sample)
-{
-    buf.Samples[buf.Head] = sample;
-    buf.Head = (buf.Head + 1) % SCOPE_BUFFER_SIZE;
-    if (buf.Count < SCOPE_BUFFER_SIZE)
-        buf.Count++;
-}
-
-/*
-static void DrawScope(SDL_Renderer* renderer, const ScopeBuffer& buf, float x, float y, float w, float h, uint32_t neuronIndex)
-{
-    SDL_FRect bg = { x, y, w, h };
-    SDL_SetRenderDrawColor(renderer, 20, 22, 28, 235);
-    SDL_RenderFillRect(renderer, &bg);
-
-    SDL_SetRenderDrawColor(renderer, 90, 95, 110, 255);
-    SDL_RenderRect(renderer, &bg);
-
-    SDL_SetRenderDrawColor(renderer, 200, 80, 80, 180);
-    SDL_RenderLine(renderer, x + 1.0f, y + 1.0f, x + w - 1.0f, y + 1.0f);
-
-    SDL_SetRenderDrawColor(renderer, 60, 100, 60, 140);
-    SDL_RenderLine(renderer, x + 1.0f, y + h - 1.0f, x + w - 1.0f, y + h - 1.0f);
-
-    SDL_SetRenderDrawColor(renderer, 50, 55, 65, 255);
-    SDL_RenderLine(renderer, x + 1.0f, y + h * 0.5f, x + w - 1.0f, y + h * 0.5f);
-
-    if (buf.Count >= 2)
-    {
-        SDL_SetRenderDrawColor(renderer, 120, 200, 255, 255);
-
-        const size_t startIdx = (buf.Head + SCOPE_BUFFER_SIZE - buf.Count) % SCOPE_BUFFER_SIZE;
-        const float xStep = w / (float)(SCOPE_BUFFER_SIZE - 1);
-
-        const float xOffset = w - xStep * (float)(buf.Count - 1);
-
-        auto sampleAt = [&](size_t k) -> double
-            {
-                return buf.Samples[(startIdx + k) % SCOPE_BUFFER_SIZE];
-            };
-
-        auto vToY = [&](double v) -> float
-            {
-                double frac = v / V_THRESHOLD;
-                if (frac < 0.0) frac = 0.0;
-                if (frac > 1.0) frac = 1.0;
-                return y + h - 1.0f - (float)(frac * (h - 2.0f));
-            };
-
-        float prevX = x + xOffset;
-        float prevY = vToY(sampleAt(0));
-        for (size_t k = 1; k < buf.Count; ++k)
-        {
-            const float curX = x + xOffset + xStep * (float)k;
-            const float curY = vToY(sampleAt(k));
-            SDL_RenderLine(renderer, prevX, prevY, curX, curY);
-            prevX = curX;
-            prevY = curY;
-        }
-    }
-
-    std::array<char, 64> title = {};
-    std::snprintf(title.data(), sizeof(char) * title.size(), "Neuron %u", neuronIndex);
-    Drawer::Col titleColor = { 120, 200, 255, 255 };
-    Drawer::DrawTextSlow(renderer, title.data(), x + 8.0f, y + 4.0f, titleColor, Drawer::g_FontMedium);
-
-    std::array<char, 16> vt = {};
-    std::snprintf(vt.data(), sizeof(char) * vt.size(), "%.2f V", V_THRESHOLD);
-    Drawer::Col axisColor = { 160, 160, 170, 255 };
-    Drawer::DrawTextSlow(renderer, vt.data(), x + w - 48.0f, y + 1.0f, axisColor, Drawer::g_FontSmall);
-    Drawer::DrawTextSlow(renderer, "0 V", x + w - 48.0f, y + h - 14.0f, axisColor, Drawer::g_FontSmall);
-
-    const double scopeDuration = (double)SCOPE_BUFFER_SIZE * SIM_DT;
-    constexpr int NUM_TICKS = 7;
-    constexpr float TICK_LEN = 5.0f;
-
-    Drawer::Col tickColor = { 160, 160, 170, 255 };
-    SDL_SetRenderDrawColor(renderer, 160, 160, 170, 255);
-
-    for (int t = 0; t < NUM_TICKS; ++t)
-    {
-        const float frac = (float)t / (float)(NUM_TICKS - 1);
-        const float tickX = x + 1.0f + frac * (w - 2.0f);
-
-        SDL_RenderLine(renderer, tickX, y + h - 1.0f, tickX, y + h - 1.0f - TICK_LEN);
-
-        SDL_SetRenderDrawColor(renderer, 45, 48, 56, 255);
-        SDL_RenderLine(renderer, tickX, y + 1.0f, tickX, y + h - 2.0f);
-        SDL_SetRenderDrawColor(renderer, 160, 160, 170, 255);
-
-        std::array<char, 16> tickLabel = {};
-        const double tickTime = frac * scopeDuration;
-        std::snprintf(tickLabel.data(), sizeof(char) * tickLabel.size(), "%.0fms", tickTime * 1000.0);
-        Drawer::DrawTextSlow(renderer, tickLabel.data(), tickX, y + h + 5.0f, tickColor, Drawer::g_FontSmall, true);
-    }
-}
-*/
 
 struct Renderer
 {
@@ -191,7 +80,7 @@ static void StopSDL(Renderer renderer)
     SDL_Quit();
 }
 
-static void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const Individual& bestIndividual, const std::vector<Individual>& individuals, FlappyBird& game, const std::vector<double>& history, double sigma, double frameTime)
+static void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const Individual& bestIndividual, const std::vector<Individual>& individuals, Game& game, const std::vector<double>& history, double sigma, double frameTime)
 {
     const double bestEver = history.size() > 0 ? *std::max_element(history.begin(), history.end()) : 0.0;
 
@@ -214,13 +103,13 @@ static void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const Indiv
     SDL_RenderLine(renderer, sidebarX, 0.0f, sidebarX, (float)m_WinH);
 
     Drawer::DrawTextSlow(renderer, "NEURO FLAPPY", posX, posY, { 180, 200, 255, 220 }, Drawer::g_FontMedium);
-    posY += Drawer::g_FontMedium ? 42.0f : 28.0f;
+    posY += 28.0f;
 
     Drawer::DrawTextSlow(renderer, "Generation", posX, posY, { 120, 140, 180, 200 }, Drawer::g_FontSmall);
     posY += 20.0f;
 
     Drawer::DrawTextSlow(renderer, std::to_string(generation), posX, posY, { 255, 220, 60, 255 }, Drawer::g_FontMedium);
-    posY += Drawer::g_FontMedium ? 44.0f : 30.0f;
+    posY += 20.0f;
 
     Drawer::DrawTextSlow(renderer, "Alive", posX, posY, { 120, 140, 180, 200 }, Drawer::g_FontSmall);
     posY += 20.0f;
@@ -243,22 +132,22 @@ static void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const Indiv
     Drawer::SetColor(renderer, { 15, 18, 35, 255 });
     for (uint32_t tickIndex = 1; tickIndex < 10; ++tickIndex)
         Drawer::FillRect(renderer, posX + barWidth * (float)tickIndex * 0.1f - 0.5f, posY, 1.0f, 20.0f);
-    posY += 28.0f;
+    posY += 20.0f;
     Drawer::DrawTextSlow(renderer, std::to_string(individualsAlive) + " / " + std::to_string(MAX_INDIVIDUALS), posX, posY, {160, 200, 255, 220}, Drawer::g_FontSmall);
-    posY += 28.0f;
+    posY += 20.0f;
 
     Drawer::DrawTextSlow(renderer, "Best fitness", posX, posY, { 120, 140, 180, 200 }, Drawer::g_FontSmall);
     posY += 20.0f;
     std::array<char, 128> textBuffer = {};
     std::snprintf(textBuffer.data(), textBuffer.size(), "%.1f", bestAliveFitness);
     Drawer::DrawTextSlow(renderer, textBuffer.data(), posX, posY, { 120, 255, 160, 255 }, Drawer::g_FontMedium);
-    posY += Drawer::g_FontMedium ? 44.0f : 30.0f;
+    posY += 20.0f;
 
     Drawer::DrawTextSlow(renderer, "All-time best", posX, posY, { 120, 140, 180, 200 }, Drawer::g_FontSmall);
     posY += 20.0f;
     std::snprintf(textBuffer.data(), textBuffer.size(), "%.1f", bestEver);
     Drawer::DrawTextSlow(renderer, textBuffer.data(), posX, posY, { 255, 220, 60, 200 }, Drawer::g_FontSmall);
-    posY += 30.0f;
+    posY += 20.0f;
 
     {
         Drawer::DrawTextSlow(renderer, "Sigma", posX, posY, { 120, 140, 180, 200 }, Drawer::g_FontSmall);
@@ -272,15 +161,15 @@ static void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const Indiv
         Drawer::FillRect(renderer, posX, posY, barWidth * sigmaFraction, 12.0f);
 
         std::snprintf(textBuffer.data(), textBuffer.size(), "%.3f", sigma);
-        posY += 16.0f;
+        posY += 20.0f;
         Drawer::DrawTextSlow(renderer, textBuffer.data(), posX, posY, { 160, 160, 180, 180 }, Drawer::g_FontSmall);
-        posY += 28.0f;
+        posY += 20.0f;
     }
     auto addPhase = [&](float phase, float min, float max)
         {
-            std::snprintf(textBuffer.data(), textBuffer.size(), "Phase: %.3f", phase);
+            std::snprintf(textBuffer.data(), textBuffer.size(), "Phase: %.3f, Min: %.3f, Max: %.3f", phase, min, max);
             Drawer::DrawTextSlow(renderer, textBuffer.data(), posX, posY, { 120, 140, 180, 200 }, Drawer::g_FontSmall);
-            posY += 20.0f;
+            posY += 10.0f;
 
             const float phaseFraction = std::clamp(phase, 0.0f, 1.0f);
 
@@ -289,17 +178,15 @@ static void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const Indiv
             Drawer::SetColor(renderer, Drawer::LerpCol({ 60, 120, 255, 180 }, { 255, 120, 60, 180 }, phaseFraction));
             Drawer::FillRect(renderer, posX, posY, barWidth * phaseFraction, 12.0f);
 
-            std::snprintf(textBuffer.data(), textBuffer.size(), "Min: %.3f, Max: %.3f", min, max);
-            posY += 16.0f;
             Drawer::DrawTextSlow(renderer, textBuffer.data(), posX, posY, { 160, 160, 180, 180 }, Drawer::g_FontSmall);
-            posY += 28.0f;
+            posY += 10.0f;
         };
 
     const auto& spikeEncoderRange = bestIndividual.Genome.SpikeEncoderRange;
 
     for (uint32_t i = 0; i < INPUT_NEURONS; i++)
     {
-        addPhase(bestIndividual.Players[0].InputState[i].GetPhase(), spikeEncoderRange[i].Min, spikeEncoderRange[i].Max);
+        //addPhase(bestIndividual.Players[0].InputState[i].GetPhase(), spikeEncoderRange[i].Min, spikeEncoderRange[i].Max);
     }
 
     if (history.size() > 1)
@@ -356,8 +243,8 @@ static void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const Indiv
         constexpr std::array<uint32_t, layerCount> layerSizes = { INPUT_NEURONS, HIDDEN_NEURONS, OUTPUT_NEURONS };
         constexpr std::array<uint32_t, layerCount> layerOffsets = { 0, INPUT_NEURONS, INPUT_NEURONS + HIDDEN_NEURONS };
 
-        const float neuronRadius = 9.0f;
-        const float networkHeight = 30.0f + 40.0f * TOTAL_NEURONS + 20.0f;
+        const float neuronRadius = 4.0f;
+        const float networkHeight = 30.0f + 20.0f * TOTAL_NEURONS + 20.0f;
 
         Drawer::SetColor(renderer, { 10, 12, 20, 210 });
         Drawer::FillRect(renderer, posX, posY, barWidth, networkHeight);
@@ -567,7 +454,7 @@ static void HandleGameInputs(GameState& gameState)
     }
 }
 
-static void StartTraining(const Renderer& renderer, FlappyBird& game, std::mt19937& rng)
+static void StartTraining(const Renderer& renderer, Game& game, std::mt19937& rng)
 {
     GameState gameState;
 
@@ -593,10 +480,10 @@ static void StartTraining(const Renderer& renderer, FlappyBird& game, std::mt199
                 std::cout << "Fitness: " << lastBestIndividual->EvaluateFitness(game) << std::endl;
             }
 
-            const double alpha = std::clamp(static_cast<double>(gameState.Generation) / 1.0, 0.0, 1.0);
+            const double alpha = std::clamp(static_cast<double>(gameState.Generation) / 10.0 - 1.0, 0.0, 1.0);
 
             const double bestFitness = lastBestIndividual ? lastBestIndividual->EvaluateFitness(game) : 0.0;
-            if (bestFitness > lastBestFitness * 0.9)
+            if (bestFitness > lastBestFitness)
                 gameState.Sigma *= 0.9;
             else
                 gameState.Sigma /= 0.9;
@@ -613,23 +500,17 @@ static void StartTraining(const Renderer& renderer, FlappyBird& game, std::mt199
 
             game.Reset();
 
-            constexpr uint32_t mu = 10;
             std::vector<Individual> nextIndividuals;
 
-            std::uniform_int_distribution<int> randomDistribution(0, mu - 1);
+            std::uniform_int_distribution<int> randomDistribution(0, EVOLUTION_MU - 1);
             std::uniform_real_distribution<float> continuousDistribution(0.0f, 1.0f);
             for (uint32_t individualIndex = 0; individualIndex < MAX_INDIVIDUALS; individualIndex++)
             {
                 Individual& individual = nextIndividuals.emplace_back();
-                for (auto& player : individual.Players)
-                {
-                    uint32_t birdIndex = game.AddPlayer();
-                    player.PlayerIndex = birdIndex;
-                }
 
-                if (individualIndex >= mu)
+                if (individuals.size() >= EVOLUTION_MU)
                 {
-                    if (individuals.size() >= mu)
+                    if (individualIndex >= 1)
                     {
                         if (continuousDistribution(rng) <= CROSSOVER_CHANCE)
                         {
@@ -642,13 +523,33 @@ static void StartTraining(const Renderer& renderer, FlappyBird& game, std::mt199
                         {
                             individual.Genome = individuals[randomDistribution(rng)].Genome;
                         }
-                    }
 
-                    individual.Genome.Mutate(rng, gameState.Sigma);
+                        individual.Genome.Mutate(rng, gameState.Sigma);
+
+                        for (auto& player : individual.Players)
+                        {
+                            uint32_t playerIndex = game.AddPlayer(false);
+                            player.PlayerIndex = playerIndex;
+                        }
+                    }
+                    else
+                    {
+                        individual.Genome = individuals[individualIndex].Genome;
+
+                        for (auto& player : individual.Players)
+                        {
+                            uint32_t playerIndex = game.AddPlayer(true);
+                            player.PlayerIndex = playerIndex;
+                        }
+                    }
                 }
                 else
                 {
-                    individual.Genome = individuals[individualIndex].Genome;
+                    for (auto& player : individual.Players)
+                    {
+                        uint32_t playerIndex = game.AddPlayer(false);
+                        player.PlayerIndex = playerIndex;
+                    }
                 }
 
                 ConstructNetwork(individual);
@@ -677,7 +578,7 @@ static void StartTraining(const Renderer& renderer, FlappyBird& game, std::mt199
         game.Step(SIM_DT);
 
         // New generation
-        if (game.IsDone() || gameState.Skip || game.GetSimTime() > 240.0)
+        if (game.IsDone() || gameState.Skip || game.GetSimTime() > 60.0)
         {
             gameState.Skip = false;
             startGeneration();
@@ -713,8 +614,6 @@ static void StartTraining(const Renderer& renderer, FlappyBird& game, std::mt199
                     player.InputState[inputIndex].SetValue(input, spikeEncoderRange[inputIndex].Min, spikeEncoderRange[inputIndex].Max);
                 }
 
-                // TODO: Fix whatever this code is
-
                 for (uint32_t i = 0; i < NEURON_SUBSTEPS; i++)
                 {
                     const double substepDeltaTime = SIM_DT / static_cast<double>(NEURON_SUBSTEPS);
@@ -726,8 +625,7 @@ static void StartTraining(const Renderer& renderer, FlappyBird& game, std::mt199
                         bool spike = player.InputState[inputIndex].Update(substepDeltaTime);
                         if (spike)
                         {
-                            player.Network.Neurons[inputIndex].I_in[0] += 1.0;
-                            player.Network.Neurons[inputIndex].Weights[0] = inputWeight;
+                            player.Network.TriggerConnected(inputIndex);
                         }
                     }
 
@@ -828,7 +726,7 @@ int main(int argc, char* argv[])
 
     const Renderer renderer = StartSDL();
     std::mt19937 rng(std::random_device{}());
-    FlappyBird game(renderer.Renderer, rng);
+    CartPole game(renderer.Renderer, rng);
 
     //StartSim(renderer, game);
     StartTraining(renderer, game, rng);

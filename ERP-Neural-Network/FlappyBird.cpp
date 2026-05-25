@@ -12,7 +12,7 @@ FlappyBird::FlappyBird(SDL_Renderer* renderer, std::mt19937& rng, uint32_t gameH
     SpawnPipes();
 }
 
-uint32_t FlappyBird::AddPlayer()
+uint32_t FlappyBird::AddPlayer(bool display)
 {
     const uint32_t playerIndex = (uint32_t)m_Birds.size();
     Bird bird;

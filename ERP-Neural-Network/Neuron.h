@@ -6,12 +6,12 @@ static constexpr double V_DD = 3; // Volt;
 //static constexpr double V_REFRAC_START = V_DD / 4.0; // Volt
 static constexpr double REFRAC_TIME = 12 / 1000.0; // Seconds
 
-static constexpr uint32_t MAX_INPUTS = 3;
-static constexpr uint32_t MAX_OUTPUTS = 3;
+static constexpr uint32_t MAX_INPUTS = 8;
+static constexpr uint32_t MAX_OUTPUTS = 8;
 
-static constexpr uint32_t INPUT_NEURONS = 3;
-static constexpr uint32_t HIDDEN_NEURONS = 3;
-static constexpr uint32_t OUTPUT_NEURONS = 1;
+static constexpr uint32_t INPUT_NEURONS = 8;
+static constexpr uint32_t HIDDEN_NEURONS = 4;
+static constexpr uint32_t OUTPUT_NEURONS = 2;
 static constexpr uint32_t TOTAL_NEURONS = INPUT_NEURONS + HIDDEN_NEURONS + OUTPUT_NEURONS;
 
 class SpikeEncoder
@@ -36,6 +36,14 @@ private:
 
 struct Neuron
 {
+    Neuron()
+    {
+        for (int8_t& val : OutputConnections)
+            val = -1;
+        for (int8_t& val : InputConnections)
+            val = -1;
+    }
+
     std::array<double, MAX_INPUTS> Weights = {}; // Volt
     std::array<double, MAX_INPUTS> I_in = {}; // 0 to 1
 
@@ -47,13 +55,17 @@ struct Neuron
 
     double RefracTime = 0.0;
 
-    std::array<int8_t, MAX_OUTPUTS> OutputConnections = { -1, -1, -1 };
-    std::array<int8_t, MAX_INPUTS> InputConnections = { -1, -1, -1 };
+    std::array<int8_t, MAX_OUTPUTS> OutputConnections = {};
+    std::array<int8_t, MAX_INPUTS> InputConnections = {};
+
+    bool Inactive = false;
 };
 
 struct NeuralNetwork
 {
     std::array<Neuron, TOTAL_NEURONS> Neurons = {};
+
+    void TriggerConnected(int8_t neuronIndex);
 };
 
 bool ConnectNeurons(NeuralNetwork& network, int8_t inputNeuron, int8_t outputNeuron, double weight);

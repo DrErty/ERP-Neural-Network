@@ -52,6 +52,8 @@ std::vector<uint8_t> UpdateNetwork(NeuralNetwork& network, double dt)
     for (uint32_t i = 0; i < TOTAL_NEURONS; i++)
     {
         Neuron& neuron = network.Neurons[i];
+        if (neuron.Inactive) continue;
+
         double I_syn = 0.0;
         for (uint32_t j = 0; j < MAX_INPUTS; j++)
         {
@@ -73,21 +75,7 @@ std::vector<uint8_t> UpdateNetwork(NeuralNetwork& network, double dt)
         // Check if should trigger
         if (neuron.V_mem >= neuron.V_threshold)
         {
-            for (uint32_t j = 0; j < MAX_OUTPUTS; j++)
-            {
-                int8_t toIndex = neuron.OutputConnections[j];
-                if (toIndex == -1) continue;
-
-                int32_t inputSyn = -1;
-                for (uint32_t k = 0; k < MAX_INPUTS; k++)
-                {
-                    if (network.Neurons[toIndex].InputConnections[k] == i)
-                        inputSyn = k;
-                }
-                Assert(inputSyn != -1);
-
-                network.Neurons[toIndex].I_in[inputSyn] = 1.0;
-            }
+            network.TriggerConnected(i);
             neuron.V_mem = 0;
             neuron.RefracTime = REFRAC_TIME;
 
@@ -99,4 +87,24 @@ std::vector<uint8_t> UpdateNetwork(NeuralNetwork& network, double dt)
         //ScopePush(scopes[i], network.Neurons[scopeNeuronIndices[i]].V_mem);
     //}
     return neuronsFired;
+}
+
+void NeuralNetwork::TriggerConnected(int8_t neuronIndex)
+{
+    Neuron& neuron = Neurons[neuronIndex];
+    for (uint32_t j = 0; j < MAX_OUTPUTS; j++)
+    {
+        int8_t toIndex = neuron.OutputConnections[j];
+        if (toIndex == -1) continue;
+
+        int32_t inputSyn = -1;
+        for (uint32_t k = 0; k < MAX_INPUTS; k++)
+        {
+            if (Neurons[toIndex].InputConnections[k] == neuronIndex)
+                inputSyn = k;
+        }
+        Assert(inputSyn != -1);
+
+        Neurons[toIndex].I_in[inputSyn] = 1.0;
+    }
 }

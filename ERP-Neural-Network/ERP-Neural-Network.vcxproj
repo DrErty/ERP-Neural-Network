@@ -146,6 +146,7 @@
     <Font Include="font.ttf" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CartPole.cpp" />
     <ClCompile Include="Drawer.cpp" />
     <ClCompile Include="Evolution.cpp" />
     <ClCompile Include="FlappyBird.cpp" />
@@ -154,10 +155,12 @@
     <ClCompile Include="serialib.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CartPole.h" />
     <ClInclude Include="Drawer.h" />
     <ClInclude Include="ERP.h" />
     <ClInclude Include="Evolution.h" />
     <ClInclude Include="FlappyBird.h" />
+    <ClInclude Include="Game.h" />
     <ClInclude Include="Neuron.h" />
     <ClInclude Include="serialib.h" />
   </ItemGroup>
