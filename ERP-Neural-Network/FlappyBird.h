@@ -8,19 +8,6 @@
 class FlappyBird
 {
 public:
-    static constexpr float GRAVITY = 2100.0f;
-    static constexpr float FLAP_VEL = -630.0f;
-    static constexpr float PIPE_SPEED = 330.0f;
-    static constexpr float PIPE_GAP = 270.0f;
-    static constexpr float PIPE_W = 90.0f;
-    static constexpr float PIPE_SPACING = 480.0f;
-    static constexpr float BIRD_X = 240.0f;
-    static constexpr float BIRD_R = 21.0f;
-    static constexpr uint32_t N_PIPES = 4;
-    static constexpr uint32_t PHYS_STEPS = 4;
-
-    static constexpr uint32_t MAX_BIRD_DRAW_COUNT = 20;
-
     FlappyBird(SDL_Renderer* renderer, std::mt19937& rng, uint32_t gameHeight = Drawer::DEFAULT_WINDOW_HEIGHT, uint32_t gameWidth = Drawer::DEFAULT_WINDOW_WIDTH);
 
     uint32_t AddPlayer();
@@ -43,6 +30,19 @@ public:
     void Reset();
     void KillPlayer(uint32_t playerIndex);
 private:
+    static constexpr float GRAVITY = 2100.0f;
+    static constexpr float FLAP_VEL = -630.0f;
+    static constexpr float PIPE_SPEED = 330.0f;
+    static constexpr float PIPE_GAP = 270.0f;
+    static constexpr float PIPE_W = 90.0f;
+    static constexpr float PIPE_SPACING = 480.0f;
+    static constexpr float BIRD_X = 240.0f;
+    static constexpr float BIRD_R = 21.0f;
+    static constexpr uint32_t N_PIPES = 4;
+    static constexpr uint32_t PHYS_STEPS = 4;
+
+    static constexpr uint32_t MAX_BIRD_DRAW_COUNT = 20;
+
     struct Pipe
     {
         float X, GapY;
