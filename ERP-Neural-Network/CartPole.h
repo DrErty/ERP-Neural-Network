@@ -77,6 +77,7 @@ private:
     uint32_t m_GameWidth;
 
     std::vector<Player> m_Players;
+    std::vector<Player*> m_AlivePlayers;
     uint32_t m_AliveCount = 0;
     bool m_Done = false;
     double m_SimTime = 0.0;

@@ -6,11 +6,11 @@ static constexpr double V_DD = 3; // Volt;
 //static constexpr double V_REFRAC_START = V_DD / 4.0; // Volt
 static constexpr double REFRAC_TIME = 12 / 1000.0; // Seconds
 
-static constexpr uint32_t MAX_INPUTS = 8;
-static constexpr uint32_t MAX_OUTPUTS = 8;
+static constexpr uint32_t MAX_INPUTS = 3;
+static constexpr uint32_t MAX_OUTPUTS = 3;
 
 static constexpr uint32_t INPUT_NEURONS = 8;
-static constexpr uint32_t HIDDEN_NEURONS = 4;
+static constexpr uint32_t HIDDEN_NEURONS = 6;
 static constexpr uint32_t OUTPUT_NEURONS = 2;
 static constexpr uint32_t TOTAL_NEURONS = INPUT_NEURONS + HIDDEN_NEURONS + OUTPUT_NEURONS;
 
@@ -59,6 +59,7 @@ struct Neuron
     std::array<int8_t, MAX_INPUTS> InputConnections = {};
 
     bool Inactive = false;
+    bool PendingTrigger = false;
 };
 
 struct NeuralNetwork
@@ -71,4 +72,4 @@ struct NeuralNetwork
 bool ConnectNeurons(NeuralNetwork& network, int8_t inputNeuron, int8_t outputNeuron, double weight);
 
 //static void UpdateNetwork(NeuralNetwork& network, std::array<ScopeBuffer, SCOPE_COUNT>& scopes, const std::array<uint32_t, SCOPE_COUNT>& scopeNeuronIndices)
-std::vector<uint8_t> UpdateNetwork(NeuralNetwork& network, double dt);
+void UpdateNetwork(NeuralNetwork& network, double dt);

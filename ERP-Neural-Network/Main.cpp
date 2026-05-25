@@ -13,7 +13,7 @@
 #include "Evolution.h"
 
 static constexpr double SIM_DT = 1.0 / 60.0; // Seconds
-static constexpr uint32_t NEURON_SUBSTEPS = 20;
+static constexpr uint32_t NEURON_SUBSTEPS = 10;
 
 static constexpr float M_PI = 3.14159265f;
 static constexpr float NEURON_SIZE = 80.0f;
@@ -80,7 +80,7 @@ static void StopSDL(Renderer renderer)
     SDL_Quit();
 }
 
-static void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const Individual& bestIndividual, const std::vector<Individual>& individuals, Game& game, const std::vector<double>& history, double sigma, double frameTime)
+static void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const std::vector<Individual>& individuals, Game& game, const std::vector<double>& history, double sigma, double frameTime)
 {
     const double bestEver = history.size() > 0 ? *std::max_element(history.begin(), history.end()) : 0.0;
 
@@ -182,7 +182,7 @@ static void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const Indiv
             posY += 10.0f;
         };
 
-    const auto& spikeEncoderRange = bestIndividual.Genome.SpikeEncoderRange;
+    //const auto& spikeEncoderRange = bestIndividual.Genome.SpikeEncoderRange;
 
     for (uint32_t i = 0; i < INPUT_NEURONS; i++)
     {
@@ -218,8 +218,8 @@ static void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const Indiv
             const uint32_t historyIndex = (uint32_t)history.size() - sampleCount + sampleIndex;
             const float startX = posX + (float)(sampleIndex - 1) * barWidth / (float)sampleCount;
             const float endX = posX + (float)sampleIndex * barWidth / (float)sampleCount;
-            const float startY = posY + sparkHeight - (float)(history[historyIndex - 1] / maxFitness * sparkHeight);
-            const float endY = posY + sparkHeight - (float)(history[historyIndex] / maxFitness * sparkHeight);
+            const float startY = posY + sparkHeight - (float)(std::max(history[historyIndex - 1], 0.0) / maxFitness * sparkHeight);
+            const float endY = posY + sparkHeight - (float)(std::max(history[historyIndex], 0.0) / maxFitness * sparkHeight);
             Drawer::SetColor(renderer, { 100, 220, 160, 220 });
             SDL_RenderLine(renderer, startX, startY, endX, endY);
         }
@@ -237,7 +237,7 @@ static void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const Indiv
         { 120, 130, 160, 200 }, Drawer::g_FontSmall);
 
     {
-        const NeuralNetwork& baseNetwork = bestIndividual.Players[0].Network;
+        const NeuralNetwork& baseNetwork = individuals[0].Players[0].Network;
 
         constexpr uint32_t layerCount = 3;
         constexpr std::array<uint32_t, layerCount> layerSizes = { INPUT_NEURONS, HIDDEN_NEURONS, OUTPUT_NEURONS };
@@ -428,6 +428,7 @@ struct GameState
     bool SpeedUp = false;
     bool Render = true;
     bool Skip = false;
+    bool Disable = false;
     uint32_t Generation = 0;
 
     double Sigma = INITIAL_SIGMA;
@@ -450,6 +451,8 @@ static void HandleGameInputs(GameState& gameState)
                 gameState.Render = !gameState.Render;
             if (event.key.key == SDLK_P)
                 gameState.Skip = true;
+            if (event.key.key == SDLK_L)
+                gameState.Disable = !gameState.Disable;
         }
     }
 }
@@ -483,10 +486,10 @@ static void StartTraining(const Renderer& renderer, Game& game, std::mt19937& rn
             const double alpha = std::clamp(static_cast<double>(gameState.Generation) / 10.0 - 1.0, 0.0, 1.0);
 
             const double bestFitness = lastBestIndividual ? lastBestIndividual->EvaluateFitness(game) : 0.0;
-            if (bestFitness > lastBestFitness)
-                gameState.Sigma *= 0.9;
+            if (bestFitness > lastBestFitness * 0.9)
+                gameState.Sigma *= 0.95;
             else
-                gameState.Sigma /= 0.9;
+                gameState.Sigma /= 0.95;
 
             std::cout << "Sigma: " << gameState.Sigma << std::endl;
             std::cout << "Alpha: " << alpha << std::endl;
@@ -512,7 +515,7 @@ static void StartTraining(const Renderer& renderer, Game& game, std::mt19937& rn
                 {
                     if (individualIndex >= 1)
                     {
-                        if (continuousDistribution(rng) <= CROSSOVER_CHANCE)
+                        if (continuousDistribution(rng) < CROSSOVER_CHANCE)
                         {
                             const Genome& genomeA = individuals[randomDistribution(rng)].Genome;
                             const Genome& genomeB = individuals[randomDistribution(rng)].Genome;
@@ -578,65 +581,69 @@ static void StartTraining(const Renderer& renderer, Game& game, std::mt19937& rn
         game.Step(SIM_DT);
 
         // New generation
-        if (game.IsDone() || gameState.Skip || game.GetSimTime() > 60.0)
+        if (game.IsDone() || gameState.Skip || game.GetSimTime() > 120.0)
         {
             gameState.Skip = false;
             startGeneration();
         }
 
-        Individual* bestIndividual = nullptr;
-        double bestFitness = 0.0;
-        for (auto& individual : individuals)
-        {
-            double fitness = individual.EvaluateFitness(game);
-            if (fitness > bestFitness)
+        std::for_each(std::execution::par, individuals.begin(), individuals.end(), [&game](Individual& individual)
             {
-                bestIndividual = &individual;
-                bestFitness = fitness;
-            }
+                double fitness = individual.EvaluateFitness(game);
 
-            const auto& spikeEncoderRange = individual.Genome.SpikeEncoderRange;
+                const auto& spikeEncoderRange = individual.Genome.SpikeEncoderRange;
 
-            for (auto& player : individual.Players)
-            {
-                if (!game.PlayerAlive(player.PlayerIndex))
+                for (auto& player : individual.Players)
                 {
-                    for (auto& otherPlayer : individual.Players)
-                        game.KillPlayer(otherPlayer.PlayerIndex);
-
-                    individual.Alive = false;
-                    break;
-                }
-                
-                for (uint32_t inputIndex = 0; inputIndex < INPUT_NEURONS; inputIndex++)
-                {
-                    float input = game.GetInput(player.PlayerIndex, inputIndex);
-                    player.InputState[inputIndex].SetValue(input, spikeEncoderRange[inputIndex].Min, spikeEncoderRange[inputIndex].Max);
-                }
-
-                for (uint32_t i = 0; i < NEURON_SUBSTEPS; i++)
-                {
-                    const double substepDeltaTime = SIM_DT / static_cast<double>(NEURON_SUBSTEPS);
-
-                    constexpr double inputWeight = 10.0;
+                    if (!game.PlayerAlive(player.PlayerIndex))
+                    {
+                        individual.Alive = false;
+                        break;
+                    }
 
                     for (uint32_t inputIndex = 0; inputIndex < INPUT_NEURONS; inputIndex++)
                     {
-                        bool spike = player.InputState[inputIndex].Update(substepDeltaTime);
-                        if (spike)
-                        {
-                            player.Network.TriggerConnected(inputIndex);
-                        }
+                        float input = game.GetInput(player.PlayerIndex, inputIndex);
+                        player.InputState[inputIndex].SetValue(input, spikeEncoderRange[inputIndex].Min, spikeEncoderRange[inputIndex].Max);
                     }
 
-                    std::vector<uint8_t> neuronsFired = UpdateNetwork(player.Network, substepDeltaTime);
-                    for (uint8_t neuronIndex : neuronsFired)
+                    for (uint32_t i = 0; i < NEURON_SUBSTEPS; i++)
                     {
-                        const int32_t outputIndex = neuronIndex - INPUT_NEURONS - HIDDEN_NEURONS;
-                        if (outputIndex >= 0 && outputIndex < OUTPUT_NEURONS)
+                        const double substepDeltaTime = SIM_DT / static_cast<double>(NEURON_SUBSTEPS);
+
+                        for (uint32_t inputIndex = 0; inputIndex < INPUT_NEURONS; inputIndex++)
                         {
-                            game.Action(player.PlayerIndex, outputIndex);
+                            bool spike = player.InputState[inputIndex].Update(substepDeltaTime);
+                            if (spike)
+                            {
+                                player.Network.TriggerConnected(inputIndex);
+                            }
                         }
+
+                        UpdateNetwork(player.Network, substepDeltaTime);
+                    }
+                }
+            });
+
+        for (auto& individual : individuals)
+        {
+            if (!individual.Alive)
+            {
+                for (auto& otherPlayer : individual.Players)
+                    game.KillPlayer(otherPlayer.PlayerIndex);
+            }
+            for (auto& player : individual.Players)
+            {
+                for (uint32_t neuronIndex = 0; neuronIndex < player.Network.Neurons.size(); neuronIndex++)
+                {
+                    if (!player.Network.Neurons[neuronIndex].PendingTrigger) continue;
+                    player.Network.Neurons[neuronIndex].PendingTrigger = false;
+
+                    const int32_t outputIndex = neuronIndex - INPUT_NEURONS - HIDDEN_NEURONS;
+                    if (outputIndex >= 0 && outputIndex < OUTPUT_NEURONS)
+                    {
+                        if (!gameState.Disable)
+                            game.Action(player.PlayerIndex, outputIndex);
                     }
                 }
             }
@@ -645,10 +652,7 @@ static void StartTraining(const Renderer& renderer, Game& game, std::mt19937& rn
         if (gameState.Render)
         {
             game.Render();
-            if (bestIndividual)
-            {
-                DrawSidebar(renderer.Renderer, gameState.Generation, *bestIndividual, individuals, game, history, gameState.Sigma, lastFrameTime);
-            }
+            DrawSidebar(renderer.Renderer, gameState.Generation, individuals, game, history, gameState.Sigma, lastFrameTime);
 
             lastFrameTime = FrameEnd(renderer, frame, gameState.SpeedUp);
         }

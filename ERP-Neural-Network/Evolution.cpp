@@ -1,11 +1,88 @@
 #include "Evolution.h"
 
+static uint32_t CountInputConnections(const std::vector<Connection>& connections, int8_t neuron)
+{
+    uint32_t connectionCount = 0;
+
+    for (auto& connection : connections)
+    {
+        if (connection.InputNeuron == neuron)
+            connectionCount++;
+    }
+
+    return connectionCount;
+}
+
+static uint32_t CountOutputConnections(const std::vector<Connection>& connections, int8_t neuron)
+{
+    uint32_t connectionCount = 0;
+
+    for (auto& connection : connections)
+    {
+        if (connection.OutputNeuron == neuron)
+            connectionCount++;
+    }
+
+    return connectionCount;
+}
+
+static uint32_t GetNeuronComplement(uint32_t neuron)
+{
+    if (neuron < INPUT_NEURONS)
+        return INPUT_NEURONS - neuron - 1;
+    else if ((neuron >= INPUT_NEURONS) && (neuron < (INPUT_NEURONS + HIDDEN_NEURONS)))
+        return (HIDDEN_NEURONS - (neuron - INPUT_NEURONS) - 1) + INPUT_NEURONS;
+    else
+        return (OUTPUT_NEURONS - (neuron - INPUT_NEURONS - HIDDEN_NEURONS) - 1) + INPUT_NEURONS + HIDDEN_NEURONS;
+}
+
+static bool ValidConnection(const std::vector<Connection>& connections, int8_t inputNeuron, int8_t outputNeuron)
+{
+    uint32_t inputConnectionCount = 0;
+    uint32_t outputConnectionCount = 0;
+
+    for (auto& connection : connections)
+    {
+        if (connection.InputNeuron == inputNeuron && connection.OutputNeuron == outputNeuron)
+        {
+            return false;
+        }
+
+        if (connection.InputNeuron == inputNeuron)
+            inputConnectionCount++;
+        if (connection.OutputNeuron == outputNeuron)
+            outputConnectionCount++;
+    }
+
+    for (auto& connection : connections)
+    {
+        if (GetNeuronComplement(connection.InputNeuron) == inputNeuron && GetNeuronComplement(connection.OutputNeuron) == outputNeuron)
+        {
+            return false;
+        }
+
+        if (GetNeuronComplement(connection.InputNeuron) == inputNeuron)
+            inputConnectionCount++;
+        if (GetNeuronComplement(connection.OutputNeuron) == outputNeuron)
+            outputConnectionCount++;
+    }
+
+    if (inputConnectionCount >= MAX_INPUTS)
+        return false;
+
+    if (outputConnectionCount >= MAX_OUTPUTS)
+        return false;
+
+    return true;
+}
+
 void Genome::Print()
 {
-    std::cout << "Weights: ";
-    for (double weight : Weights)
+    std::cout << "Connections, count: " << Connections.size() << ": ";
+
+    for (auto& connection : Connections)
     {
-        std::cout << weight << " ";
+        std::cout << "In: " << connection.InputNeuron << " Out: " << connection.OutputNeuron << " Weight:" << connection.Weight << " ";
     }
     std::cout << std::endl;
     std::cout << "VLeaks: ";
@@ -24,13 +101,14 @@ void Genome::Print()
 
 void Genome::Mutate(std::mt19937& rng, double sigma)
 {
+    std::uniform_real_distribution<double> uniformDistribution(0.0f, 1.0f);
     std::normal_distribution<double> normalDistribution(0.0, sigma);
     std::normal_distribution<double> vLeakDistribution(0.0, sigma * 0.1);
 
-    for (double& weight : Weights)
+    for (auto& connection : Connections)
     {
-        weight += normalDistribution(rng);
-        weight = std::clamp(weight, -20.0, 20.0);
+        connection.Weight += normalDistribution(rng);
+        connection.Weight = std::clamp(connection.Weight, -20.0, 20.0);
     }
 
     for (double& vLeak : VLeaks)
@@ -38,31 +116,43 @@ void Genome::Mutate(std::mt19937& rng, double sigma)
         vLeak += vLeakDistribution(rng);
         vLeak = std::clamp(vLeak, 0.0, V_DD);
     }
-#if 0
-    for (Range& range : SpikeEncoderRange)
+
+    /*
+    while ((uniformDistribution(rng) <= DELETE_CONNECTION_CHANCE) && (Connections.size() > 0))
     {
-        range.Min += normalDistribution(rng);
-        range.Max += normalDistribution(rng);
+        std::uniform_int_distribution<uint32_t> distribution(0, Connections.size() - 1);
 
-        if (range.Min > range.Max)
-        {
-            std::swap(range.Min, range.Max);
-        }
-        range.Min = std::round(range.Min);
-        range.Max = std::round(range.Max);
-
-        Assert(range.Min <= range.Max);
+        Connections.erase(Connections.begin() + distribution(rng));
     }
-#endif
+
+    while (uniformDistribution(rng) <= NEW_CONNECTION_CHANCE)
+    {
+        std::uniform_int_distribution<uint32_t> inputDistribution(INPUT_NEURONS, TOTAL_NEURONS - 1);
+        std::uniform_int_distribution<uint32_t> outputDistribution(0, INPUT_NEURONS + HIDDEN_NEURONS - 1);
+        while (true)
+        {
+            uint32_t inputNeuron = inputDistribution(rng);
+            uint32_t outputNeuron = outputDistribution(rng);
+            if (inputNeuron != outputNeuron)
+            {
+                if (ValidConnection(Connections, inputNeuron, outputNeuron) && ValidConnection(Connections, GetNeuronComplement(inputNeuron), GetNeuronComplement(outputNeuron)))
+                {
+                    Connections.emplace_back(0.0, inputNeuron, outputNeuron);
+                }
+                break;
+            }
+        }
+    }
+    */
 }
 
 double Individual::EvaluateFitness(const Game& game) const
 {
-    double totalFitness = 0.0;
+    double totalGameFitness = 0.0;
     for (const Player& player : Players)
     {
         const double fitness = game.PlayerFitness(player.PlayerIndex);
-        totalFitness += fitness;
+        totalGameFitness += fitness;
     }
 
     double lowestFitness = std::numeric_limits<double>::max();
@@ -74,15 +164,29 @@ double Individual::EvaluateFitness(const Game& game) const
     }
 
     constexpr double alpha = 1.0;
-    return lowestFitness * alpha + (1.0 - alpha) * totalFitness / static_cast<double>(EVALUTIONS_PER_GENOME);
+    const double gameFitness = lowestFitness * alpha + (1.0 - alpha) * totalGameFitness / static_cast<double>(EVALUTIONS_PER_GENOME);
+
+    double totalFitness = gameFitness;
+    for (uint32_t neuron = INPUT_NEURONS + HIDDEN_NEURONS; neuron < TOTAL_NEURONS; neuron++)
+    {
+        //totalFitness -= CountInputConnections(Genome.Connections, neuron) > 0 ? 0.0 : 100.0;
+    }
+    for (uint32_t neuron = 0; neuron < INPUT_NEURONS; neuron++)
+    {
+        //totalFitness -= CountOutputConnections(Genome.Connections, neuron) > 0 ? 0.0 : 100.0;
+    }
+
+    return totalFitness;
 }
 
 Genome CrossoverGenome(const Genome& genomeA, const Genome& genomeB, std::mt19937& rng)
 {
+    Assert(false);
+
     std::uniform_real_distribution<float> distribution(0.0f, 1.0f);
     Genome childGenome = {};
-    for (uint32_t i = 0; i < childGenome.Weights.size(); i++)
-        childGenome.Weights[i] = (distribution(rng) < 0.5f) ? genomeA.Weights[i] : genomeB.Weights[i];
+    //for (uint32_t i = 0; i < childGenome.Weights.size(); i++)
+    //    childGenome.Weights[i] = (distribution(rng) < 0.5f) ? genomeA.Weights[i] : genomeB.Weights[i];
 
     for (uint32_t i = 0; i < childGenome.VLeaks.size(); i++)
         childGenome.VLeaks[i] = (distribution(rng) < 0.5f) ? genomeA.VLeaks[i] : genomeB.VLeaks[i];
@@ -101,14 +205,13 @@ void ConstructNetwork(Individual& individual)
     for (uint32_t i = 0; i < INPUT_NEURONS; i++)
         network.Neurons[i].Inactive = true;
 
-    uint32_t weightCount = 0;
-    for (uint32_t i = 0; i < INPUT_NEURONS; i++)
-        for (uint32_t j = INPUT_NEURONS; j < INPUT_NEURONS + HIDDEN_NEURONS; j++)
-            ConnectNeurons(network, j, i, genome.Weights[weightCount++]);
-
-    for (uint32_t i = INPUT_NEURONS; i < INPUT_NEURONS + HIDDEN_NEURONS; i++)
-        for (uint32_t j = INPUT_NEURONS + HIDDEN_NEURONS; j < TOTAL_NEURONS; j++)
-            ConnectNeurons(network, j, i, genome.Weights[weightCount++]);
+    for (auto& connection : genome.Connections)
+    {
+        //std::printf("In: %i, Out: %i\n", connection.InputNeuron, connection.OutputNeuron);
+        //std::printf("Complement In: %i, Out: %i\n", GetNeuronComplement(connection.InputNeuron), GetNeuronComplement(connection.OutputNeuron));
+        ConnectNeurons(network, connection.InputNeuron, connection.OutputNeuron, connection.Weight);
+        ConnectNeurons(network, GetNeuronComplement(connection.InputNeuron), GetNeuronComplement(connection.OutputNeuron), connection.Weight);
+    }
 
     for (uint32_t neuronIndex = 0; neuronIndex < TOTAL_NEURONS; neuronIndex++)
         network.Neurons[neuronIndex].V_leak = genome.VLeaks[neuronIndex];

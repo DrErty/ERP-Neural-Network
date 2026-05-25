@@ -20,9 +20,13 @@ bool SpikeEncoder::Update(float dt)
 
 bool ConnectNeurons(NeuralNetwork& network, int8_t inputNeuron, int8_t outputNeuron, double weight)
 {
+    //std::printf("In: %i, Out: %i\n", inputNeuron, outputNeuron);
     int32_t outputSyn = -1;
     for (uint32_t i = 0; i < MAX_OUTPUTS; i++)
     {
+        if (network.Neurons[outputNeuron].OutputConnections[i] == inputNeuron)
+            Assert(false);
+
         if (network.Neurons[outputNeuron].OutputConnections[i] == -1)
             outputSyn = i;
     }
@@ -30,6 +34,9 @@ bool ConnectNeurons(NeuralNetwork& network, int8_t inputNeuron, int8_t outputNeu
     int32_t inputSyn = -1;
     for (uint32_t i = 0; i < MAX_INPUTS; i++)
     {
+        if (network.Neurons[outputNeuron].InputConnections[i] == outputNeuron)
+            Assert(false);
+
         if (network.Neurons[inputNeuron].InputConnections[i] == -1)
             inputSyn = i;
     }
@@ -46,9 +53,8 @@ bool ConnectNeurons(NeuralNetwork& network, int8_t inputNeuron, int8_t outputNeu
     return true;
 }
 
-std::vector<uint8_t> UpdateNetwork(NeuralNetwork& network, double dt)
+void UpdateNetwork(NeuralNetwork& network, double dt)
 {
-    std::vector<uint8_t> neuronsFired;
     for (uint32_t i = 0; i < TOTAL_NEURONS; i++)
     {
         Neuron& neuron = network.Neurons[i];
@@ -78,15 +84,13 @@ std::vector<uint8_t> UpdateNetwork(NeuralNetwork& network, double dt)
             network.TriggerConnected(i);
             neuron.V_mem = 0;
             neuron.RefracTime = REFRAC_TIME;
-
-            neuronsFired.emplace_back(i);
+            neuron.PendingTrigger = true;
         }
     }
     //for (uint32_t i = 0; i < SCOPE_COUNT; i++)
     //{
         //ScopePush(scopes[i], network.Neurons[scopeNeuronIndices[i]].V_mem);
     //}
-    return neuronsFired;
 }
 
 void NeuralNetwork::TriggerConnected(int8_t neuronIndex)
