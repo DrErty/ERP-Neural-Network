@@ -16,7 +16,7 @@ uint32_t CartPole::AddPlayer(bool display)
     const uint32_t playerIndex = static_cast<uint32_t>(m_Players.size());
     Player player;
     std::uniform_real_distribution<double> distribution(-1.0, 1.0);
-    player.State.Theta = 0.2 * distribution(m_Rng);
+    player.State.Theta = g_PI / 8.0 * distribution(m_Rng);
     player.State.X = POSITION_NORM * distribution(m_Rng) * 0.25;
     player.Display = display;
 
@@ -74,12 +74,20 @@ CartPole::PhysicsState CartPole::StepPhysics(const PhysicsState& state, double f
     next.XDot = state.XDot + xDotDot * dt;
     next.Theta = state.Theta + state.ThetaDot * dt;
     next.ThetaDot = state.ThetaDot + thetaDotDot * dt;
+
+    if (next.X > POSITION_NORM)
+        next.X -= POSITION_NORM * 2.0;
+
+    if (next.X < -POSITION_NORM)
+        next.X += POSITION_NORM * 2.0;
+
     return next;
 }
 
 bool CartPole::IsTerminal(const PhysicsState& state) const
 {
-    return std::abs(state.Theta) > ANGLE_LIMIT || std::abs(state.X) > static_cast<double>(POSITION_NORM);
+    //return std::abs(state.Theta) > ANGLE_LIMIT || std::abs(state.X) > static_cast<double>(POSITION_NORM);
+    return std::abs(state.Theta) > ANGLE_LIMIT;
 }
 
 void CartPole::Step(float dt)

@@ -82,21 +82,14 @@ void Genome::Print()
 
     for (auto& connection : Connections)
     {
-        std::cout << "In: " << connection.InputNeuron << " Out: " << connection.OutputNeuron << " Weight:" << connection.Weight << " ";
+        std::cout << "In: " << connection.InputNeuron << " Out: " << connection.OutputNeuron << " Weight:" << connection.Weight << '\n';
     }
-    std::cout << std::endl;
     std::cout << "VLeaks: ";
     for (double vLeak : VLeaks)
     {
         std::cout << vLeak << " ";
     }
-    std::cout << std::endl;
-    std::cout << "Ranges: ";
-    for (const Range& range : SpikeEncoderRange)
-    {
-        std::cout << "Min: " << range.Min << ", Max: " << range.Max << " ";
-    }
-    std::cout << std::endl;
+    std::cout << '\n';
 }
 
 void Genome::Mutate(std::mt19937& rng, double sigma)
@@ -163,7 +156,7 @@ double Individual::EvaluateFitness(const Game& game) const
             lowestFitness = fitness;
     }
 
-    constexpr double alpha = 1.0;
+    constexpr double alpha = 0.75;
     const double gameFitness = lowestFitness * alpha + (1.0 - alpha) * totalGameFitness / static_cast<double>(EVALUTIONS_PER_GENOME);
 
     double totalFitness = gameFitness;
@@ -190,9 +183,6 @@ Genome CrossoverGenome(const Genome& genomeA, const Genome& genomeB, std::mt1993
 
     for (uint32_t i = 0; i < childGenome.VLeaks.size(); i++)
         childGenome.VLeaks[i] = (distribution(rng) < 0.5f) ? genomeA.VLeaks[i] : genomeB.VLeaks[i];
-
-    for (uint32_t i = 0; i < childGenome.SpikeEncoderRange.size(); i++)
-        childGenome.SpikeEncoderRange[i] = (distribution(rng) < 0.5f) ? genomeA.SpikeEncoderRange[i] : genomeB.SpikeEncoderRange[i];
 
     return childGenome;
 }
@@ -223,7 +213,7 @@ void VaryNetwork(NeuralNetwork& network, std::mt19937& rng, double alpha)
 
     NoisyEvalConfig config;
 
-    std::normal_distribution<double> weightNoise(0.0f, config.WeightNoiseSigma);
+    std::normal_distribution<double> weightNoise(0.0, config.WeightNoiseSigma);
     std::normal_distribution<double> tauMemNoise(0.0, config.TauMemNoiseSigma);
     std::normal_distribution<double> tauSynNoise(0.0, config.TauSynNoiseSigma);
     std::normal_distribution<double> vThresholdNoise(0.0, config.VThresholdNoiseSigma);
@@ -231,10 +221,10 @@ void VaryNetwork(NeuralNetwork& network, std::mt19937& rng, double alpha)
     for (Neuron& neuron : network.Neurons)
     {
         for (double& weight : neuron.Weights)
-            weight *= (1.0 + weightNoise(rng) * alpha);
+            weight *= (1.0 + std::clamp(tauMemNoise(rng) * alpha, -config.WeightNoiseSigma, config.WeightNoiseSigma));
 
-        neuron.Tau_mem *= (1.0 + tauMemNoise(rng) * alpha);
-        neuron.Tau_syn *= (1.0 + tauSynNoise(rng) * alpha);
-        neuron.V_threshold *= (1.0 + vThresholdNoise(rng) * alpha);
+        neuron.Tau_mem *= (1.0 + std::clamp(tauMemNoise(rng) * alpha, -config.TauMemNoiseSigma, config.TauMemNoiseSigma));
+        neuron.Tau_syn *= (1.0 + std::clamp(tauSynNoise(rng) * alpha, -config.TauSynNoiseSigma, config.TauSynNoiseSigma));
+        neuron.V_threshold *= (1.0 + std::clamp(vThresholdNoise(rng) * alpha, -config.VThresholdNoiseSigma, config.VThresholdNoiseSigma));
     }
 }

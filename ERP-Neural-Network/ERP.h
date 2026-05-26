@@ -16,6 +16,8 @@
 
 #define NOMINMAX
 
+static constexpr double g_PI = 3.1415926535897932384626433832;
+
 static void Assert(bool condition)
 {
     if (!condition)

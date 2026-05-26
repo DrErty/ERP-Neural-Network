@@ -581,7 +581,7 @@ static void StartTraining(const Renderer& renderer, Game& game, std::mt19937& rn
         game.Step(SIM_DT);
 
         // New generation
-        if (game.IsDone() || gameState.Skip || game.GetSimTime() > 120.0)
+        if (game.IsDone() || gameState.Skip || game.GetSimTime() > 30.0)
         {
             gameState.Skip = false;
             startGeneration();
@@ -590,8 +590,6 @@ static void StartTraining(const Renderer& renderer, Game& game, std::mt19937& rn
         std::for_each(std::execution::par, individuals.begin(), individuals.end(), [&game](Individual& individual)
             {
                 double fitness = individual.EvaluateFitness(game);
-
-                const auto& spikeEncoderRange = individual.Genome.SpikeEncoderRange;
 
                 for (auto& player : individual.Players)
                 {
@@ -604,7 +602,7 @@ static void StartTraining(const Renderer& renderer, Game& game, std::mt19937& rn
                     for (uint32_t inputIndex = 0; inputIndex < INPUT_NEURONS; inputIndex++)
                     {
                         float input = game.GetInput(player.PlayerIndex, inputIndex);
-                        player.InputState[inputIndex].SetValue(input, spikeEncoderRange[inputIndex].Min, spikeEncoderRange[inputIndex].Max);
+                        player.InputState[inputIndex].SetValue(input, 0.0f, 1.0f);
                     }
 
                     for (uint32_t i = 0; i < NEURON_SUBSTEPS; i++)
@@ -629,8 +627,8 @@ static void StartTraining(const Renderer& renderer, Game& game, std::mt19937& rn
         {
             if (!individual.Alive)
             {
-                for (auto& otherPlayer : individual.Players)
-                    game.KillPlayer(otherPlayer.PlayerIndex);
+                //for (auto& otherPlayer : individual.Players)
+                    //game.KillPlayer(otherPlayer.PlayerIndex);
             }
             for (auto& player : individual.Players)
             {

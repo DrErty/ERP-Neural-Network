@@ -6,19 +6,13 @@
 
 static constexpr uint32_t MAX_INDIVIDUALS = 256;
 static constexpr uint32_t EVOLUTION_MU = 8;
-static constexpr uint32_t EVALUTIONS_PER_GENOME = 10;
+static constexpr uint32_t EVALUTIONS_PER_GENOME = 32;
 static constexpr double INITIAL_SIGMA = 5.0;
 static constexpr uint32_t TOTAL_WEIGHTS = INPUT_NEURONS * HIDDEN_NEURONS + HIDDEN_NEURONS * OUTPUT_NEURONS;
 
 static constexpr float CROSSOVER_CHANCE = 0.0f;
 static constexpr float NEW_CONNECTION_CHANCE = 0.08f;
 static constexpr float DELETE_CONNECTION_CHANCE = 0.02f;
-
-struct Range
-{
-    double Min = 0.0;
-    double Max = 1.0;
-};
 
 struct Connection
 {
@@ -31,7 +25,6 @@ struct Genome
 {
     std::vector<Connection> Connections;
     std::array<double, TOTAL_NEURONS> VLeaks = {};
-    std::array<Range, INPUT_NEURONS> SpikeEncoderRange = {};
 
     Genome()
     {
@@ -76,10 +69,10 @@ void ConstructNetwork(Individual& individual);
 
 struct NoisyEvalConfig
 {
-    float WeightNoiseSigma = 0.1f;
-    float TauMemNoiseSigma = 0.05f;
-    float TauSynNoiseSigma = 0.1f;
-    float VThresholdNoiseSigma = 0.02f;
+    double WeightNoiseSigma = 0.1;
+    double TauMemNoiseSigma = 0.05;
+    double TauSynNoiseSigma = 0.1;
+    double VThresholdNoiseSigma = 0.02;
 };
 
 void VaryNetwork(NeuralNetwork& network, std::mt19937& rng, double alpha);
