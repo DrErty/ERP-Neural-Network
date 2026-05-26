@@ -13,7 +13,7 @@
 #include "Evolution.h"
 
 static constexpr double SIM_DT = 1.0 / 60.0; // Seconds
-static constexpr uint32_t NEURON_SUBSTEPS = 10;
+static constexpr uint32_t NEURON_SUBSTEPS = 16;
 
 static constexpr float M_PI = 3.14159265f;
 static constexpr float NEURON_SIZE = 80.0f;
@@ -182,13 +182,6 @@ static void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const std::
             posY += 10.0f;
         };
 
-    //const auto& spikeEncoderRange = bestIndividual.Genome.SpikeEncoderRange;
-
-    for (uint32_t i = 0; i < INPUT_NEURONS; i++)
-    {
-        //addPhase(bestIndividual.Players[0].InputState[i].GetPhase(), spikeEncoderRange[i].Min, spikeEncoderRange[i].Max);
-    }
-
     if (history.size() > 1)
     {
         Drawer::DrawTextSlow(renderer, "Fitness history", posX, posY, { 120, 140, 180, 200 }, Drawer::g_FontSmall);
@@ -202,7 +195,7 @@ static void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const std::
         if (maxFitness < 1.0)
             maxFitness = 1.0;
 
-        const uint32_t sampleCount = history.size();
+        const uint32_t sampleCount = static_cast<uint32_t>(history.size());
 
         for (uint32_t sampleIndex = 0; sampleIndex < sampleCount; ++sampleIndex)
         {
@@ -231,7 +224,7 @@ static void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const std::
 
     Drawer::SetColor(renderer, { 60, 70, 100, 200 });
     Drawer::FillRect(renderer, sidebarX, (float)m_WinH - 36.0f, Drawer::SIDEBAR_WIDTH, 36.0f);
-    Drawer::DrawTextSlow(renderer, "[ESC] quit   [R] pause", posX, (float)m_WinH - 26.0f,
+    Drawer::DrawTextSlow(renderer, "[ESC] quit   [Space] Speed up   [R] Disable rendering", posX, (float)m_WinH - 26.0f,
         { 120, 130, 160, 200 }, Drawer::g_FontSmall);
     Drawer::DrawTextSlow(renderer, "Frame time: " + std::to_string(frameTime * 1000.0) + "ms", posX, (float)m_WinH - 52.0f,
         { 120, 130, 160, 200 }, Drawer::g_FontSmall);
@@ -581,7 +574,7 @@ static void StartTraining(const Renderer& renderer, Game& game, std::mt19937& rn
         game.Step(SIM_DT);
 
         // New generation
-        if (game.IsDone() || gameState.Skip || game.GetSimTime() > 30.0)
+        if (game.IsDone() || gameState.Skip || game.GetSimTime() > 60.0)
         {
             gameState.Skip = false;
             startGeneration();

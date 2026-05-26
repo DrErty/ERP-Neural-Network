@@ -203,8 +203,17 @@ void ConstructNetwork(Individual& individual)
         ConnectNeurons(network, GetNeuronComplement(connection.InputNeuron), GetNeuronComplement(connection.OutputNeuron), connection.Weight);
     }
 
-    for (uint32_t neuronIndex = 0; neuronIndex < TOTAL_NEURONS; neuronIndex++)
-        network.Neurons[neuronIndex].V_leak = genome.VLeaks[neuronIndex];
+    for (uint32_t neuronIndex = INPUT_NEURONS; neuronIndex < INPUT_NEURONS + HIDDEN_NEURONS / 2; neuronIndex++)
+    {
+        network.Neurons[neuronIndex].V_leak = genome.VLeaks[neuronIndex - INPUT_NEURONS];
+        network.Neurons[GetNeuronComplement(neuronIndex)].V_leak = genome.VLeaks[neuronIndex - INPUT_NEURONS];
+    }
+
+    for (uint32_t neuronIndex = INPUT_NEURONS + HIDDEN_NEURONS; neuronIndex < INPUT_NEURONS + HIDDEN_NEURONS + OUTPUT_NEURONS / 2; neuronIndex++)
+    {
+        network.Neurons[neuronIndex].V_leak = genome.VLeaks[neuronIndex - INPUT_NEURONS - HIDDEN_NEURONS + HIDDEN_NEURONS / 2];
+        network.Neurons[GetNeuronComplement(neuronIndex)].V_leak = genome.VLeaks[neuronIndex - INPUT_NEURONS - HIDDEN_NEURONS + HIDDEN_NEURONS / 2];
+    }
 }
 
 void VaryNetwork(NeuralNetwork& network, std::mt19937& rng, double alpha)

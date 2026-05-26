@@ -71,5 +71,4 @@ struct NeuralNetwork
 
 bool ConnectNeurons(NeuralNetwork& network, int8_t inputNeuron, int8_t outputNeuron, double weight);
 
-//static void UpdateNetwork(NeuralNetwork& network, std::array<ScopeBuffer, SCOPE_COUNT>& scopes, const std::array<uint32_t, SCOPE_COUNT>& scopeNeuronIndices)
 void UpdateNetwork(NeuralNetwork& network, double dt);

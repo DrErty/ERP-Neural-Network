@@ -28,19 +28,21 @@ public:
     void Reset() override;
     void KillPlayer(uint32_t playerIndex) override;
 private:
-    static constexpr uint32_t PHYS_STEPS = 1;
+    static constexpr uint32_t PHYS_STEPS = 4;
 
     static constexpr double CART_MASS = 1.0;
     static constexpr double POLE_MASS = 0.1;
     static constexpr double POLE_HALF_LENGTH = 0.5;
     static constexpr double GRAVITY_ACCEL = 9.81;
-    static constexpr double FORCE_MAGNITUDE = 12.0;
+    static constexpr double FORCE_MAGNITUDE = 6.0;
     static constexpr double ANGLE_LIMIT = g_PI / 2.0;
 
-    static constexpr float ANGLE_NORM = g_PI / 4.0;
+    static constexpr float ANGLE_NORM = static_cast<float>(g_PI) / 4.0f;
     static constexpr float ANGULAR_VEL_NORM = 4.0f;
     static constexpr float POSITION_NORM = 2.4f;
     static constexpr float CART_VEL_NORM = 4.0f;
+
+    static constexpr float MOTOR_RESET_TIME = 0.05f;
 
     struct PhysicsState
     {

@@ -4,9 +4,9 @@
 #include "Neuron.h"
 #include "Game.h"
 
-static constexpr uint32_t MAX_INDIVIDUALS = 256;
+static constexpr uint32_t MAX_INDIVIDUALS = 512;
 static constexpr uint32_t EVOLUTION_MU = 8;
-static constexpr uint32_t EVALUTIONS_PER_GENOME = 32;
+static constexpr uint32_t EVALUTIONS_PER_GENOME = 3;
 static constexpr double INITIAL_SIGMA = 5.0;
 static constexpr uint32_t TOTAL_WEIGHTS = INPUT_NEURONS * HIDDEN_NEURONS + HIDDEN_NEURONS * OUTPUT_NEURONS;
 
@@ -24,7 +24,7 @@ struct Connection
 struct Genome
 {
     std::vector<Connection> Connections;
-    std::array<double, TOTAL_NEURONS> VLeaks = {};
+    std::array<double, OUTPUT_NEURONS / 2 + HIDDEN_NEURONS / 2> VLeaks = {};
 
     Genome()
     {
