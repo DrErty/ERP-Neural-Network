@@ -6,7 +6,7 @@
 
 static constexpr uint32_t MAX_INDIVIDUALS = 512;
 static constexpr uint32_t EVOLUTION_MU = 8;
-static constexpr uint32_t EVALUTIONS_PER_GENOME = 3;
+static constexpr uint32_t EVALUTIONS_PER_GENOME = 5;
 static constexpr double INITIAL_SIGMA = 5.0;
 static constexpr uint32_t TOTAL_WEIGHTS = INPUT_NEURONS * HIDDEN_NEURONS + HIDDEN_NEURONS * OUTPUT_NEURONS;
 
@@ -26,21 +26,7 @@ struct Genome
     std::vector<Connection> Connections;
     std::array<double, OUTPUT_NEURONS / 2 + HIDDEN_NEURONS / 2> VLeaks = {};
 
-    Genome()
-    {
-        Connections.emplace_back(0.0, INPUT_NEURONS + 0, 0);
-        Connections.emplace_back(0.0, INPUT_NEURONS + 0, 1);
-        Connections.emplace_back(0.0, INPUT_NEURONS + 0, 2);
-        Connections.emplace_back(0.0, INPUT_NEURONS + 1, 3);
-        Connections.emplace_back(0.0, INPUT_NEURONS + 1, 4);
-        Connections.emplace_back(0.0, INPUT_NEURONS + 1, 5);
-        Connections.emplace_back(0.0, INPUT_NEURONS + 2, 6);
-        Connections.emplace_back(0.0, INPUT_NEURONS + 2, 7);
-
-        Connections.emplace_back(0.0, INPUT_NEURONS + HIDDEN_NEURONS + 0, INPUT_NEURONS + 0);
-        Connections.emplace_back(0.0, INPUT_NEURONS + HIDDEN_NEURONS + 0, INPUT_NEURONS + 1);
-        Connections.emplace_back(0.0, INPUT_NEURONS + HIDDEN_NEURONS + 0, INPUT_NEURONS + 2);
-    }
+    Genome();
 
     void Print();
     void Mutate(std::mt19937& rng, double sigma);

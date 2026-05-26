@@ -1,5 +1,21 @@
 #include "Evolution.h"
 
+Genome::Genome()
+{
+    Connections.emplace_back(0.0, INPUT_NEURONS + 0, 0);
+    Connections.emplace_back(0.0, INPUT_NEURONS + 0, 1);
+    Connections.emplace_back(0.0, INPUT_NEURONS + 0, 2);
+    Connections.emplace_back(0.0, INPUT_NEURONS + 1, 3);
+    Connections.emplace_back(0.0, INPUT_NEURONS + 1, 4);
+    Connections.emplace_back(0.0, INPUT_NEURONS + 1, 5);
+    Connections.emplace_back(0.0, INPUT_NEURONS + 2, 6);
+    Connections.emplace_back(0.0, INPUT_NEURONS + 2, 7);
+
+    Connections.emplace_back(0.0, INPUT_NEURONS + HIDDEN_NEURONS + 0, INPUT_NEURONS + 0);
+    Connections.emplace_back(0.0, INPUT_NEURONS + HIDDEN_NEURONS + 0, INPUT_NEURONS + 1);
+    Connections.emplace_back(0.0, INPUT_NEURONS + HIDDEN_NEURONS + 0, INPUT_NEURONS + 2);
+}
+
 static uint32_t CountInputConnections(const std::vector<Connection>& connections, int8_t neuron)
 {
     uint32_t connectionCount = 0;
