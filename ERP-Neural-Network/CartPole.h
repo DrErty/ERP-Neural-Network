@@ -34,7 +34,7 @@ private:
     static constexpr double POLE_MASS = 0.1;
     static constexpr double POLE_HALF_LENGTH = 0.5;
     static constexpr double GRAVITY_ACCEL = 9.81;
-    static constexpr double FORCE_MAGNITUDE = 6.0;
+    static constexpr double FORCE_MAGNITUDE = 12.0;
     static constexpr double ANGLE_LIMIT = g_PI / 2.0;
 
     static constexpr float ANGLE_NORM = static_cast<float>(g_PI) / 4.0f;

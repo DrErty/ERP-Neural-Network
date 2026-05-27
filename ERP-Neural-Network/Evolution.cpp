@@ -100,12 +100,14 @@ void Genome::Print()
     {
         std::cout << "In: " << connection.InputNeuron << " Out: " << connection.OutputNeuron << " Weight:" << connection.Weight << '\n';
     }
+    /*
     std::cout << "VLeaks: ";
     for (double vLeak : VLeaks)
     {
         std::cout << vLeak << " ";
     }
     std::cout << '\n';
+    */
 }
 
 void Genome::Mutate(std::mt19937& rng, double sigma)
@@ -117,14 +119,16 @@ void Genome::Mutate(std::mt19937& rng, double sigma)
     for (auto& connection : Connections)
     {
         connection.Weight += normalDistribution(rng);
-        connection.Weight = std::clamp(connection.Weight, -20.0, 20.0);
+        connection.Weight = std::clamp(connection.Weight, -3.5, 3.5);
     }
 
+    /*
     for (double& vLeak : VLeaks)
     {
         vLeak += vLeakDistribution(rng);
         vLeak = std::clamp(vLeak, 0.0, V_DD);
     }
+    */
 
     /*
     while ((uniformDistribution(rng) <= DELETE_CONNECTION_CHANCE) && (Connections.size() > 0))
@@ -219,6 +223,7 @@ void ConstructNetwork(Individual& individual)
         ConnectNeurons(network, GetNeuronComplement(connection.InputNeuron), GetNeuronComplement(connection.OutputNeuron), connection.Weight);
     }
 
+    /*
     for (uint32_t neuronIndex = INPUT_NEURONS; neuronIndex < INPUT_NEURONS + HIDDEN_NEURONS / 2; neuronIndex++)
     {
         network.Neurons[neuronIndex].V_leak = genome.VLeaks[neuronIndex - INPUT_NEURONS];
@@ -230,6 +235,7 @@ void ConstructNetwork(Individual& individual)
         network.Neurons[neuronIndex].V_leak = genome.VLeaks[neuronIndex - INPUT_NEURONS - HIDDEN_NEURONS + HIDDEN_NEURONS / 2];
         network.Neurons[GetNeuronComplement(neuronIndex)].V_leak = genome.VLeaks[neuronIndex - INPUT_NEURONS - HIDDEN_NEURONS + HIDDEN_NEURONS / 2];
     }
+    */
 }
 
 void VaryNetwork(NeuralNetwork& network, std::mt19937& rng, double alpha)

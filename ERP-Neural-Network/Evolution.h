@@ -4,9 +4,9 @@
 #include "Neuron.h"
 #include "Game.h"
 
-static constexpr uint32_t MAX_INDIVIDUALS = 512;
-static constexpr uint32_t EVOLUTION_MU = 8;
-static constexpr uint32_t EVALUTIONS_PER_GENOME = 5;
+static constexpr uint32_t MAX_INDIVIDUALS = 1024;
+static constexpr uint32_t EVOLUTION_MU = 128;
+static constexpr uint32_t EVALUTIONS_PER_GENOME = 1;
 static constexpr double INITIAL_SIGMA = 5.0;
 static constexpr uint32_t TOTAL_WEIGHTS = INPUT_NEURONS * HIDDEN_NEURONS + HIDDEN_NEURONS * OUTPUT_NEURONS;
 
@@ -55,10 +55,10 @@ void ConstructNetwork(Individual& individual);
 
 struct NoisyEvalConfig
 {
-    double WeightNoiseSigma = 0.1;
+    double WeightNoiseSigma = 0.05;
     double TauMemNoiseSigma = 0.05;
-    double TauSynNoiseSigma = 0.1;
-    double VThresholdNoiseSigma = 0.02;
+    double TauSynNoiseSigma = 0.05;
+    double VThresholdNoiseSigma = 0.05;
 };
 
 void VaryNetwork(NeuralNetwork& network, std::mt19937& rng, double alpha);

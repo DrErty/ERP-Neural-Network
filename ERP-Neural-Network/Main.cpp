@@ -476,7 +476,7 @@ static void StartTraining(const Renderer& renderer, Game& game, std::mt19937& rn
                 std::cout << "Fitness: " << lastBestIndividual->EvaluateFitness(game) << std::endl;
             }
 
-            const double alpha = std::clamp(static_cast<double>(gameState.Generation) / 10.0 - 1.0, 0.0, 1.0);
+            const double alpha = std::clamp(static_cast<double>(gameState.Generation) / 1000.0 - 1.0, 0.0, 1.0);
 
             const double bestFitness = lastBestIndividual ? lastBestIndividual->EvaluateFitness(game) : 0.0;
             if (bestFitness > lastBestFitness * 0.9)

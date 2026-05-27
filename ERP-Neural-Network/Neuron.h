@@ -48,9 +48,9 @@ struct Neuron
     std::array<double, MAX_INPUTS> I_in = {}; // 0 to 1
 
     double V_mem = 0.0; // Volt
-    double Tau_mem = 0.1; // Seconds
+    double Tau_mem = 0.02; // Seconds
     double Tau_syn = 0.02; // Seconds
-    double V_leak = 0.0; // Volt
+    double V_leak = 0.3; // Volt
     double V_threshold = V_DD / 2.0 * (1.3 / 1.5); // Volt
 
     double RefracTime = 0.0;
