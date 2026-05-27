@@ -162,22 +162,24 @@ void Genome::Mutate(std::mt19937& rng, double sigma)
 double Individual::EvaluateFitness(const Game& game) const
 {
     double totalGameFitness = 0.0;
-    for (const Player& player : Players)
+    for (uint32_t playerIndex = 0; playerIndex < EvalutationsPerGenome; playerIndex++)
     {
+        const Player& player = Players2[playerIndex];
         const double fitness = game.PlayerFitness(player.PlayerIndex);
         totalGameFitness += fitness;
     }
 
     double lowestFitness = std::numeric_limits<double>::max();
-    for (const Player& player : Players)
+    for (uint32_t playerIndex = 0; playerIndex < EvalutationsPerGenome; playerIndex++)
     {
+        const Player& player = Players2[playerIndex];
         const double fitness = game.PlayerFitness(player.PlayerIndex);
         if (fitness < lowestFitness)
             lowestFitness = fitness;
     }
 
     constexpr double alpha = 0.75;
-    const double gameFitness = lowestFitness * alpha + (1.0 - alpha) * totalGameFitness / static_cast<double>(EVALUTIONS_PER_GENOME);
+    const double gameFitness = lowestFitness * alpha + (1.0 - alpha) * totalGameFitness / static_cast<double>(EvalutationsPerGenome);
 
     double totalFitness = gameFitness;
     for (uint32_t neuron = INPUT_NEURONS + HIDDEN_NEURONS; neuron < TOTAL_NEURONS; neuron++)

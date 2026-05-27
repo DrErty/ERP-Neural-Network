@@ -230,7 +230,7 @@ static void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const std::
         { 120, 130, 160, 200 }, Drawer::g_FontSmall);
 
     {
-        const NeuralNetwork& baseNetwork = individuals[0].Players[0].Network;
+        const NeuralNetwork& baseNetwork = individuals[0].Players2[0].Network;
 
         constexpr uint32_t layerCount = 3;
         constexpr std::array<uint32_t, layerCount> layerSizes = { INPUT_NEURONS, HIDDEN_NEURONS, OUTPUT_NEURONS };
@@ -476,7 +476,7 @@ static void StartTraining(const Renderer& renderer, Game& game, std::mt19937& rn
                 std::cout << "Fitness: " << lastBestIndividual->EvaluateFitness(game) << std::endl;
             }
 
-            const double alpha = std::clamp(static_cast<double>(gameState.Generation) / 1000.0 - 1.0, 0.0, 1.0);
+            const double alpha = std::clamp(static_cast<double>(gameState.Generation) / 1.0 - 1.0, 0.0, 1.0);
 
             const double bestFitness = lastBestIndividual ? lastBestIndividual->EvaluateFitness(game) : 0.0;
             if (bestFitness > lastBestFitness * 0.9)
@@ -504,6 +504,9 @@ static void StartTraining(const Renderer& renderer, Game& game, std::mt19937& rn
             {
                 Individual& individual = nextIndividuals.emplace_back();
 
+                if (gameState.Generation >= 0)
+                    individual.EvalutationsPerGenome = MAX_EVALUTIONS_PER_GENOME;
+
                 if (individuals.size() >= EVOLUTION_MU)
                 {
                     if (individualIndex >= 1)
@@ -522,9 +525,10 @@ static void StartTraining(const Renderer& renderer, Game& game, std::mt19937& rn
 
                         individual.Genome.Mutate(rng, gameState.Sigma);
 
-                        for (auto& player : individual.Players)
+                        for (uint32_t i = 0; i < individual.EvalutationsPerGenome; i++)
                         {
-                            uint32_t playerIndex = game.AddPlayer(false);
+                            Player& player = individual.Players2[i];
+                            const uint32_t playerIndex = game.AddPlayer(false);
                             player.PlayerIndex = playerIndex;
                         }
                     }
@@ -532,26 +536,29 @@ static void StartTraining(const Renderer& renderer, Game& game, std::mt19937& rn
                     {
                         individual.Genome = individuals[individualIndex].Genome;
 
-                        for (auto& player : individual.Players)
+                        for (uint32_t i = 0; i < individual.EvalutationsPerGenome; i++)
                         {
-                            uint32_t playerIndex = game.AddPlayer(true);
+                            Player& player = individual.Players2[i];
+                            const uint32_t playerIndex = game.AddPlayer(true);
                             player.PlayerIndex = playerIndex;
                         }
                     }
                 }
                 else
                 {
-                    for (auto& player : individual.Players)
+                    for (uint32_t i = 0; i < individual.EvalutationsPerGenome; i++)
                     {
-                        uint32_t playerIndex = game.AddPlayer(false);
+                        Player& player = individual.Players2[i];
+                        const uint32_t playerIndex = game.AddPlayer(false);
                         player.PlayerIndex = playerIndex;
                     }
                 }
 
                 ConstructNetwork(individual);
 
-                for (auto& player : individual.Players)
+                for (uint32_t playerIndex = 0; playerIndex < individual.EvalutationsPerGenome; playerIndex++)
                 {
+                    Player& player = individual.Players2[playerIndex];
                     player.Network = individual.BaseNetwork;
                     VaryNetwork(player.Network, rng, alpha);
                 }
@@ -584,8 +591,9 @@ static void StartTraining(const Renderer& renderer, Game& game, std::mt19937& rn
             {
                 double fitness = individual.EvaluateFitness(game);
 
-                for (auto& player : individual.Players)
+                for (uint32_t playerIndex = 0; playerIndex < individual.EvalutationsPerGenome; playerIndex++)
                 {
+                    auto& player = individual.Players2[playerIndex];
                     if (!game.PlayerAlive(player.PlayerIndex))
                     {
                         individual.Alive = false;
@@ -623,8 +631,9 @@ static void StartTraining(const Renderer& renderer, Game& game, std::mt19937& rn
                 //for (auto& otherPlayer : individual.Players)
                     //game.KillPlayer(otherPlayer.PlayerIndex);
             }
-            for (auto& player : individual.Players)
+            for (uint32_t i = 0; i < individual.EvalutationsPerGenome; i++)
             {
+                Player& player = individual.Players2[i];
                 for (uint32_t neuronIndex = 0; neuronIndex < player.Network.Neurons.size(); neuronIndex++)
                 {
                     if (!player.Network.Neurons[neuronIndex].PendingTrigger) continue;

@@ -39,8 +39,8 @@ private:
 
     static constexpr float ANGLE_NORM = static_cast<float>(g_PI) / 4.0f;
     static constexpr float ANGULAR_VEL_NORM = 4.0f;
-    static constexpr float POSITION_NORM = 2.4f;
-    static constexpr float CART_VEL_NORM = 4.0f;
+    static constexpr float POSITION_NORM = 4.0f;
+    static constexpr float CART_VEL_NORM = 16.0f;
 
     static constexpr float MOTOR_RESET_TIME = 0.05f;
 
@@ -83,4 +83,7 @@ private:
     uint32_t m_AliveCount = 0;
     bool m_Done = false;
     double m_SimTime = 0.0;
+
+    double m_CameraX = 0.0;
+    double m_CameraSpeed = 0.0;
 };

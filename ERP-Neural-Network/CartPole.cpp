@@ -16,9 +16,16 @@ uint32_t CartPole::AddPlayer(bool display)
     const uint32_t playerIndex = static_cast<uint32_t>(m_Players.size());
     Player player;
     std::uniform_real_distribution<double> distribution(-1.0, 1.0);
-    player.State.Theta = g_PI / 1.0 * (1.0 + distribution(m_Rng) * 0.1);
-    //player.State.X = POSITION_NORM * distribution(m_Rng) * 0.5;
+    player.State.Theta = g_PI / 1.0 * (1.0 + 0.1);
+    //player.State.X = POSITION_NORM * distribution(m_Rng) * 0.95;
+    player.State.X = 0.0;
     player.Display = display;
+
+    if (playerIndex == 0)
+    {
+        m_CameraX = 0.0;
+        m_CameraSpeed = 0.0;
+    }
 
     m_Players.push_back(std::move(player));
     ++m_AliveCount;
@@ -75,11 +82,19 @@ CartPole::PhysicsState CartPole::StepPhysics(const PhysicsState& state, double f
     next.Theta = state.Theta + state.ThetaDot * dt;
     next.ThetaDot = state.ThetaDot + thetaDotDot * dt;
 
+    if (next.Theta >= g_PI)
+        next.Theta -= g_PI * 2.0;
+
+    if (next.Theta <= -g_PI)
+        next.Theta += g_PI * 2.0;
+
+    /*
     if (next.X > POSITION_NORM)
         next.X -= POSITION_NORM * 2.0;
 
     if (next.X < -POSITION_NORM)
         next.X += POSITION_NORM * 2.0;
+    */
 
     return next;
 }
@@ -95,6 +110,20 @@ void CartPole::Step(float dt)
     if (m_Done) return;
 
     const double physDt = static_cast<double>(dt) / static_cast<double>(PHYS_STEPS);
+
+    if (m_Players.size() > 0)
+    {
+        Player& lastBestPlayer = m_Players[0];
+        for (uint32_t substep = 0; substep < PHYS_STEPS; ++substep)
+        {
+            m_CameraSpeed += (lastBestPlayer.State.XDot - m_CameraSpeed) * physDt * 1.0;
+
+            m_CameraX += m_CameraSpeed * physDt;
+            m_CameraX += (lastBestPlayer.State.X - m_CameraX) * physDt * 1.0;
+        }
+
+        //std::printf("%.1f\n", lastBestPlayer.State.ThetaDot);
+    }
 
     for (auto& player : m_Players)
     {
@@ -147,7 +176,7 @@ void CartPole::Render()
 
     const Player* bestPlayer = FindBestPlayer();
     double cameraX = bestPlayer ? bestPlayer->State.X : 0.0;
-    cameraX = 0.0;
+    cameraX = m_CameraX;
 
     DrawTrack(cameraX);
 

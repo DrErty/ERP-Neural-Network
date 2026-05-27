@@ -5,8 +5,8 @@
 #include "Game.h"
 
 static constexpr uint32_t MAX_INDIVIDUALS = 1024;
-static constexpr uint32_t EVOLUTION_MU = 128;
-static constexpr uint32_t EVALUTIONS_PER_GENOME = 1;
+static constexpr uint32_t EVOLUTION_MU = 16;
+static constexpr uint32_t MAX_EVALUTIONS_PER_GENOME = 4;
 static constexpr double INITIAL_SIGMA = 5.0;
 static constexpr uint32_t TOTAL_WEIGHTS = INPUT_NEURONS * HIDDEN_NEURONS + HIDDEN_NEURONS * OUTPUT_NEURONS;
 
@@ -42,8 +42,9 @@ struct Player
 struct Individual
 {
     Genome Genome = {};
-    std::array<Player, EVALUTIONS_PER_GENOME> Players = {};
+    std::array<Player, MAX_EVALUTIONS_PER_GENOME> Players2 = {};
     NeuralNetwork BaseNetwork = {};
+    uint32_t EvalutationsPerGenome = 1;
     bool Alive = true;
 
     double EvaluateFitness(const Game& game) const;
@@ -55,10 +56,10 @@ void ConstructNetwork(Individual& individual);
 
 struct NoisyEvalConfig
 {
-    double WeightNoiseSigma = 0.05;
+    double WeightNoiseSigma = 0.2;
     double TauMemNoiseSigma = 0.05;
-    double TauSynNoiseSigma = 0.05;
-    double VThresholdNoiseSigma = 0.05;
+    double TauSynNoiseSigma = 0.2;
+    double VThresholdNoiseSigma = 0.02;
 };
 
 void VaryNetwork(NeuralNetwork& network, std::mt19937& rng, double alpha);
