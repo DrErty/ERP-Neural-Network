@@ -25,7 +25,7 @@ uint32_t FlappyBird::AddPlayer(bool display)
 void FlappyBird::Action(uint32_t playerIndex, uint32_t outputIndex)
 {
     Assert(playerIndex < m_Birds.size());
-    Assert(outputIndex < OUTPUT_NEURONS);
+    Assert(outputIndex < OUTPUT_NEURON_COUNT);
 
     if (outputIndex == 0)
     {

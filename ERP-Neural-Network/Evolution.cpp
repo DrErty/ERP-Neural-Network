@@ -2,18 +2,31 @@
 
 Genome::Genome()
 {
-    Connections.emplace_back(0.0, INPUT_NEURONS + 0, 0);
-    Connections.emplace_back(0.0, INPUT_NEURONS + 0, 1);
-    Connections.emplace_back(0.0, INPUT_NEURONS + 0, 2);
-    Connections.emplace_back(0.0, INPUT_NEURONS + 1, 3);
-    Connections.emplace_back(0.0, INPUT_NEURONS + 1, 4);
-    Connections.emplace_back(0.0, INPUT_NEURONS + 1, 5);
-    Connections.emplace_back(0.0, INPUT_NEURONS + 2, 6);
-    Connections.emplace_back(0.0, INPUT_NEURONS + 2, 7);
+    Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(0), 0);
+    Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(0), 1);
+    //Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(0), 2);
+    //Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(1), 3);
+    //Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(1), 4);
+    //Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(1), 5);
+    Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(2), 6);
+    Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(2), 7);
 
-    Connections.emplace_back(0.0, INPUT_NEURONS + HIDDEN_NEURONS + 0, INPUT_NEURONS + 0);
-    Connections.emplace_back(0.0, INPUT_NEURONS + HIDDEN_NEURONS + 0, INPUT_NEURONS + 1);
-    Connections.emplace_back(0.0, INPUT_NEURONS + HIDDEN_NEURONS + 0, INPUT_NEURONS + 2);
+    Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(3), 0);
+    Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(3), 1);
+    //Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(3), 2);
+    //Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(4), 3);
+    //Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(4), 4);
+    //Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(4), 5);
+    Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(5), 6);
+    Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(5), 7);
+
+    Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromHiddenIdx(0));
+    //Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromHiddenIdx(1));
+    Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromHiddenIdx(2));
+
+    Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromHiddenIdx(3));
+    //Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromHiddenIdx(4));
+    Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromHiddenIdx(5));
 }
 
 static uint32_t CountInputConnections(const std::vector<Connection>& connections, int8_t neuron)
@@ -42,16 +55,6 @@ static uint32_t CountOutputConnections(const std::vector<Connection>& connection
     return connectionCount;
 }
 
-static uint32_t GetNeuronComplement(uint32_t neuron)
-{
-    if (neuron < INPUT_NEURONS)
-        return INPUT_NEURONS - neuron - 1;
-    else if ((neuron >= INPUT_NEURONS) && (neuron < (INPUT_NEURONS + HIDDEN_NEURONS)))
-        return (HIDDEN_NEURONS - (neuron - INPUT_NEURONS) - 1) + INPUT_NEURONS;
-    else
-        return (OUTPUT_NEURONS - (neuron - INPUT_NEURONS - HIDDEN_NEURONS) - 1) + INPUT_NEURONS + HIDDEN_NEURONS;
-}
-
 static bool ValidConnection(const std::vector<Connection>& connections, int8_t inputNeuron, int8_t outputNeuron)
 {
     uint32_t inputConnectionCount = 0;
@@ -70,18 +73,20 @@ static bool ValidConnection(const std::vector<Connection>& connections, int8_t i
             outputConnectionCount++;
     }
 
+    /*
     for (auto& connection : connections)
     {
-        if (GetNeuronComplement(connection.InputNeuron) == inputNeuron && GetNeuronComplement(connection.OutputNeuron) == outputNeuron)
+        if (GetNeuronIdxComplement(connection.InputNeuron) == inputNeuron && GetNeuronIdxComplement(connection.OutputNeuron) == outputNeuron)
         {
             return false;
         }
 
-        if (GetNeuronComplement(connection.InputNeuron) == inputNeuron)
+        if (GetNeuronIdxComplement(connection.InputNeuron) == inputNeuron)
             inputConnectionCount++;
-        if (GetNeuronComplement(connection.OutputNeuron) == outputNeuron)
+        if (GetNeuronIdxComplement(connection.OutputNeuron) == outputNeuron)
             outputConnectionCount++;
     }
+    */
 
     if (inputConnectionCount >= MAX_INPUTS)
         return false;
@@ -182,14 +187,6 @@ double Individual::EvaluateFitness(const Game& game) const
     const double gameFitness = lowestFitness * alpha + (1.0 - alpha) * totalGameFitness / static_cast<double>(EvalutationsPerGenome);
 
     double totalFitness = gameFitness;
-    for (uint32_t neuron = INPUT_NEURONS + HIDDEN_NEURONS; neuron < TOTAL_NEURONS; neuron++)
-    {
-        //totalFitness -= CountInputConnections(Genome.Connections, neuron) > 0 ? 0.0 : 100.0;
-    }
-    for (uint32_t neuron = 0; neuron < INPUT_NEURONS; neuron++)
-    {
-        //totalFitness -= CountOutputConnections(Genome.Connections, neuron) > 0 ? 0.0 : 100.0;
-    }
 
     return totalFitness;
 }
@@ -203,8 +200,8 @@ Genome CrossoverGenome(const Genome& genomeA, const Genome& genomeB, std::mt1993
     //for (uint32_t i = 0; i < childGenome.Weights.size(); i++)
     //    childGenome.Weights[i] = (distribution(rng) < 0.5f) ? genomeA.Weights[i] : genomeB.Weights[i];
 
-    for (uint32_t i = 0; i < childGenome.VLeaks.size(); i++)
-        childGenome.VLeaks[i] = (distribution(rng) < 0.5f) ? genomeA.VLeaks[i] : genomeB.VLeaks[i];
+    //for (uint32_t i = 0; i < childGenome.VLeaks.size(); i++)
+    //    childGenome.VLeaks[i] = (distribution(rng) < 0.5f) ? genomeA.VLeaks[i] : genomeB.VLeaks[i];
 
     return childGenome;
 }
@@ -214,30 +211,19 @@ void ConstructNetwork(Individual& individual)
     NeuralNetwork& network = individual.BaseNetwork;
     const Genome& genome = individual.Genome;
 
-    for (uint32_t i = 0; i < INPUT_NEURONS; i++)
-        network.Neurons[i].Inactive = true;
+    for (uint32_t inputIdx = 0; inputIdx < INPUT_NEURON_COUNT; inputIdx++)
+        network.Neurons[GetNeuronIdxFromInputIdx(inputIdx)].Inactive = true;
 
     for (auto& connection : genome.Connections)
     {
-        //std::printf("In: %i, Out: %i\n", connection.InputNeuron, connection.OutputNeuron);
-        //std::printf("Complement In: %i, Out: %i\n", GetNeuronComplement(connection.InputNeuron), GetNeuronComplement(connection.OutputNeuron));
         ConnectNeurons(network, connection.InputNeuron, connection.OutputNeuron, connection.Weight);
-        ConnectNeurons(network, GetNeuronComplement(connection.InputNeuron), GetNeuronComplement(connection.OutputNeuron), connection.Weight);
+        //ConnectNeurons(network, GetNeuronIdxComplement(connection.InputNeuron), GetNeuronIdxComplement(connection.OutputNeuron), connection.Weight);
     }
 
-    /*
-    for (uint32_t neuronIndex = INPUT_NEURONS; neuronIndex < INPUT_NEURONS + HIDDEN_NEURONS / 2; neuronIndex++)
+    for (uint32_t neuronIdx = INPUT_NEURON_COUNT; neuronIdx < TOTAL_NEURON_COUNT; neuronIdx++)
     {
-        network.Neurons[neuronIndex].V_leak = genome.VLeaks[neuronIndex - INPUT_NEURONS];
-        network.Neurons[GetNeuronComplement(neuronIndex)].V_leak = genome.VLeaks[neuronIndex - INPUT_NEURONS];
+        network.Neurons[neuronIdx].Params = NEURON_PARAMS[neuronIdx - INPUT_NEURON_COUNT];
     }
-
-    for (uint32_t neuronIndex = INPUT_NEURONS + HIDDEN_NEURONS; neuronIndex < INPUT_NEURONS + HIDDEN_NEURONS + OUTPUT_NEURONS / 2; neuronIndex++)
-    {
-        network.Neurons[neuronIndex].V_leak = genome.VLeaks[neuronIndex - INPUT_NEURONS - HIDDEN_NEURONS + HIDDEN_NEURONS / 2];
-        network.Neurons[GetNeuronComplement(neuronIndex)].V_leak = genome.VLeaks[neuronIndex - INPUT_NEURONS - HIDDEN_NEURONS + HIDDEN_NEURONS / 2];
-    }
-    */
 }
 
 void VaryNetwork(NeuralNetwork& network, std::mt19937& rng, double alpha)
@@ -256,8 +242,8 @@ void VaryNetwork(NeuralNetwork& network, std::mt19937& rng, double alpha)
         for (double& weight : neuron.Weights)
             weight *= (1.0 + std::clamp(tauMemNoise(rng) * alpha, -config.WeightNoiseSigma, config.WeightNoiseSigma));
 
-        neuron.Tau_mem *= (1.0 + std::clamp(tauMemNoise(rng) * alpha, -config.TauMemNoiseSigma, config.TauMemNoiseSigma));
-        neuron.Tau_syn *= (1.0 + std::clamp(tauSynNoise(rng) * alpha, -config.TauSynNoiseSigma, config.TauSynNoiseSigma));
-        neuron.V_threshold *= (1.0 + std::clamp(vThresholdNoise(rng) * alpha, -config.VThresholdNoiseSigma, config.VThresholdNoiseSigma));
+        neuron.Params.TauMem *= (1.0 + std::clamp(tauMemNoise(rng) * alpha, -config.TauMemNoiseSigma, config.TauMemNoiseSigma));
+        neuron.Params.TauSyn *= (1.0 + std::clamp(tauSynNoise(rng) * alpha, -config.TauSynNoiseSigma, config.TauSynNoiseSigma));
+        neuron.Params.VThreshold *= (1.0 + std::clamp(vThresholdNoise(rng) * alpha, -config.VThresholdNoiseSigma, config.VThresholdNoiseSigma));
     }
 }

@@ -18,9 +18,36 @@ bool SpikeEncoder::Update(float dt)
     return false;
 }
 
+uint32_t GetNeuronIdxComplement(uint32_t neuronIdx)
+{
+    if (neuronIdx < INPUT_NEURON_COUNT)
+        return INPUT_NEURON_COUNT - neuronIdx - 1;
+    else if ((neuronIdx >= INPUT_NEURON_COUNT) && (neuronIdx < (INPUT_NEURON_COUNT + HIDDEN_NEURON_COUNT)))
+        return (HIDDEN_NEURON_COUNT - (neuronIdx - INPUT_NEURON_COUNT) - 1) + INPUT_NEURON_COUNT;
+    else
+        return (OUTPUT_NEURON_COUNT - (neuronIdx - INPUT_NEURON_COUNT - HIDDEN_NEURON_COUNT) - 1) + INPUT_NEURON_COUNT + HIDDEN_NEURON_COUNT;
+}
+
+uint32_t GetNeuronIdxFromInputIdx(uint32_t inputIdx)
+{
+    Assert(inputIdx < INPUT_NEURON_COUNT);
+    return inputIdx;
+}
+
+uint32_t GetNeuronIdxFromHiddenIdx(uint32_t hiddenIdx)
+{
+    Assert(hiddenIdx < HIDDEN_NEURON_COUNT);
+    return hiddenIdx + INPUT_NEURON_COUNT;
+}
+
+uint32_t GetNeuronIdxFromOutputIdx(uint32_t outputIdx)
+{
+    Assert(outputIdx < OUTPUT_NEURON_COUNT);
+    return outputIdx + INPUT_NEURON_COUNT + HIDDEN_NEURON_COUNT;
+}
+
 bool ConnectNeurons(NeuralNetwork& network, int8_t inputNeuron, int8_t outputNeuron, double weight)
 {
-    //std::printf("In: %i, Out: %i\n", inputNeuron, outputNeuron);
     int32_t outputSyn = -1;
     for (uint32_t i = 0; i < MAX_OUTPUTS; i++)
     {
@@ -48,14 +75,12 @@ bool ConnectNeurons(NeuralNetwork& network, int8_t inputNeuron, int8_t outputNeu
     network.Neurons[inputNeuron].InputConnections[inputSyn] = outputNeuron;
     network.Neurons[inputNeuron].Weights[inputSyn] = weight;
 
-    //std::printf("Connected neuron from %i to %i at synapse %i and %i\n", outputNeuron, inputNeuron, outputSyn, inputSyn);
-
     return true;
 }
 
 void UpdateNetwork(NeuralNetwork& network, double dt)
 {
-    for (uint32_t i = 0; i < TOTAL_NEURONS; i++)
+    for (uint32_t i = 0; i < TOTAL_NEURON_COUNT; i++)
     {
         Neuron& neuron = network.Neurons[i];
         if (neuron.Inactive) continue;
@@ -63,14 +88,14 @@ void UpdateNetwork(NeuralNetwork& network, double dt)
         double I_syn = 0.0;
         for (uint32_t j = 0; j < MAX_INPUTS; j++)
         {
-            neuron.I_in[j] += (-neuron.I_in[j] / neuron.Tau_syn) * dt; // Expontential Decay
+            neuron.I_in[j] += (-neuron.I_in[j] / neuron.Params.TauSyn) * dt; // Expontential Decay
             I_syn += neuron.Weights[j] * neuron.I_in[j];
         }
 
         neuron.RefracTime -= dt;
         if (neuron.RefracTime <= 0.0)
         {
-            const double dV = (-(neuron.V_mem - neuron.V_leak) + I_syn) / neuron.Tau_mem;
+            const double dV = (-(neuron.V_mem - neuron.Params.VLeak) + I_syn) / neuron.Params.TauMem;
             neuron.V_mem += dV * dt;
             if (neuron.V_mem < 0.0)
             {
@@ -79,7 +104,7 @@ void UpdateNetwork(NeuralNetwork& network, double dt)
         }
 
         // Check if should trigger
-        if (neuron.V_mem >= neuron.V_threshold)
+        if (neuron.V_mem >= neuron.Params.VThreshold)
         {
             network.TriggerConnected(i);
             neuron.V_mem = 0;
@@ -87,10 +112,6 @@ void UpdateNetwork(NeuralNetwork& network, double dt)
             neuron.PendingTrigger = true;
         }
     }
-    //for (uint32_t i = 0; i < SCOPE_COUNT; i++)
-    //{
-        //ScopePush(scopes[i], network.Neurons[scopeNeuronIndices[i]].V_mem);
-    //}
 }
 
 void NeuralNetwork::TriggerConnected(int8_t neuronIndex)

@@ -16,7 +16,7 @@ uint32_t CartPole::AddPlayer(bool display)
     const uint32_t playerIndex = static_cast<uint32_t>(m_Players.size());
     Player player;
     std::uniform_real_distribution<double> distribution(-1.0, 1.0);
-    player.State.Theta = g_PI / 1.0 * (1.0 + 0.1);
+    player.State.Theta = g_PI / 1.0 * (1.0 + 0.1 * distribution(m_Rng));
     //player.State.X = POSITION_NORM * distribution(m_Rng) * 0.95;
     player.State.X = 0.0;
     player.Display = display;
@@ -35,7 +35,7 @@ uint32_t CartPole::AddPlayer(bool display)
 void CartPole::Action(uint32_t playerIndex, uint32_t outputIndex)
 {
     Assert(playerIndex < m_Players.size());
-    Assert(outputIndex < OUTPUT_NEURONS);
+    Assert(outputIndex < OUTPUT_NEURON_COUNT);
 
     Player& player = m_Players[playerIndex];
     if (!player.Alive) return;
@@ -157,6 +157,17 @@ void CartPole::Step(float dt)
 
     for (auto& player : m_Players)
     {
+        if (player.State.Theta <= g_PI / 2.0 and player.State.Theta >= -g_PI / 2.0)
+            player.HeldUp = true;
+        else
+        {
+            if (player.HeldUp)
+            {
+                player.Alive = false;
+                --m_AliveCount;
+            }
+        }
+
         if (IsTerminal(player.State) and player.Alive)
         {
             //player.Alive = false;

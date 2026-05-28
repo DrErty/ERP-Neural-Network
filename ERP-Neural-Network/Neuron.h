@@ -2,17 +2,24 @@
 
 #include "ERP.h"
 
-static constexpr double V_DD = 3; // Volt;
-//static constexpr double V_REFRAC_START = V_DD / 4.0; // Volt
 static constexpr double REFRAC_TIME = 12 / 1000.0; // Seconds
 
 static constexpr uint32_t MAX_INPUTS = 3;
 static constexpr uint32_t MAX_OUTPUTS = 3;
 
-static constexpr uint32_t INPUT_NEURONS = 8;
-static constexpr uint32_t HIDDEN_NEURONS = 6;
-static constexpr uint32_t OUTPUT_NEURONS = 2;
-static constexpr uint32_t TOTAL_NEURONS = INPUT_NEURONS + HIDDEN_NEURONS + OUTPUT_NEURONS;
+static constexpr uint32_t INPUT_NEURON_COUNT = 8;
+static constexpr uint32_t HIDDEN_NEURON_COUNT = 6;
+static constexpr uint32_t OUTPUT_NEURON_COUNT = 2;
+static constexpr uint32_t TOTAL_NEURON_COUNT = INPUT_NEURON_COUNT + HIDDEN_NEURON_COUNT + OUTPUT_NEURON_COUNT;
+
+struct NeuronParams
+{
+    double VDrive = 0.0;
+    double TauMem = 0.0;
+    double TauSyn = 0.0;
+    double VLeak = 0.0;
+    double VThreshold = 0.0;
+};
 
 class SpikeEncoder
 {
@@ -34,6 +41,11 @@ private:
     float m_Phase;
 };
 
+uint32_t GetNeuronIdxComplement(uint32_t neuronIdx);
+uint32_t GetNeuronIdxFromInputIdx(uint32_t inputIdx);
+uint32_t GetNeuronIdxFromHiddenIdx(uint32_t hiddenIdx);
+uint32_t GetNeuronIdxFromOutputIdx(uint32_t outputIdx);
+
 struct Neuron
 {
     Neuron()
@@ -48,10 +60,8 @@ struct Neuron
     std::array<double, MAX_INPUTS> I_in = {}; // 0 to 1
 
     double V_mem = 0.0; // Volt
-    double Tau_mem = 0.02; // Seconds
-    double Tau_syn = 0.02; // Seconds
-    double V_leak = 0.3; // Volt
-    double V_threshold = V_DD / 2.0 * (1.3 / 1.5); // Volt
+
+    NeuronParams Params = {};
 
     double RefracTime = 0.0;
 
@@ -64,7 +74,7 @@ struct Neuron
 
 struct NeuralNetwork
 {
-    std::array<Neuron, TOTAL_NEURONS> Neurons = {};
+    std::array<Neuron, TOTAL_NEURON_COUNT> Neurons = {};
 
     void TriggerConnected(int8_t neuronIndex);
 };

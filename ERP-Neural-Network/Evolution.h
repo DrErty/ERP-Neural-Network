@@ -4,15 +4,84 @@
 #include "Neuron.h"
 #include "Game.h"
 
-static constexpr uint32_t MAX_INDIVIDUALS = 1024;
+static constexpr uint32_t MAX_INDIVIDUALS = 512;
 static constexpr uint32_t EVOLUTION_MU = 16;
-static constexpr uint32_t MAX_EVALUTIONS_PER_GENOME = 4;
+static constexpr uint32_t MAX_EVALUTIONS_PER_GENOME = 16;
 static constexpr double INITIAL_SIGMA = 5.0;
-static constexpr uint32_t TOTAL_WEIGHTS = INPUT_NEURONS * HIDDEN_NEURONS + HIDDEN_NEURONS * OUTPUT_NEURONS;
+static constexpr uint32_t TOTAL_WEIGHTS = INPUT_NEURON_COUNT * HIDDEN_NEURON_COUNT + HIDDEN_NEURON_COUNT * OUTPUT_NEURON_COUNT;
 
 static constexpr float CROSSOVER_CHANCE = 0.0f;
 static constexpr float NEW_CONNECTION_CHANCE = 0.08f;
 static constexpr float DELETE_CONNECTION_CHANCE = 0.02f;
+
+static constexpr std::array<NeuronParams, HIDDEN_NEURON_COUNT + OUTPUT_NEURON_COUNT> NEURON_PARAMS = {
+    {
+        // Neuron 1
+        {
+            .VDrive = 3.0,
+            .TauMem = 0.02,
+            .TauSyn = 0.02,
+            .VLeak = 0.3,
+            .VThreshold = 0.89
+        },
+        // Neuron 2
+        {
+            .VDrive = 3.0,
+            .TauMem = 0.02,
+            .TauSyn = 0.02,
+            .VLeak = 0.3,
+            .VThreshold = 0.89
+        },
+        // Neuron 3
+        {
+            .VDrive = 3.0,
+            .TauMem = 0.02,
+            .TauSyn = 0.02,
+            .VLeak = 0.3,
+            .VThreshold = 0.89
+        },
+        // Neuron 4
+        {
+            .VDrive = 3.0,
+            .TauMem = 0.02,
+            .TauSyn = 0.02,
+            .VLeak = 0.3,
+            .VThreshold = 0.89
+        },
+        // Neuron 5
+        {
+            .VDrive = 3.0,
+            .TauMem = 0.02,
+            .TauSyn = 0.02,
+            .VLeak = 0.3,
+            .VThreshold = 0.89
+        },
+        // Neuron 6
+        {
+            .VDrive = 3.0,
+            .TauMem = 0.02,
+            .TauSyn = 0.02,
+            .VLeak = 0.3,
+            .VThreshold = 0.89
+        },
+        // Neuron 7
+        {
+            .VDrive = 3.0,
+            .TauMem = 0.02,
+            .TauSyn = 0.02,
+            .VLeak = 0.3,
+            .VThreshold = 0.89
+        },
+        // Neuron 8
+        {
+            .VDrive = 3.0,
+            .TauMem = 0.02,
+            .TauSyn = 0.02,
+            .VLeak = 0.3,
+            .VThreshold = 0.89
+        },
+    }
+};
 
 struct Connection
 {
@@ -24,7 +93,6 @@ struct Connection
 struct Genome
 {
     std::vector<Connection> Connections;
-    std::array<double, OUTPUT_NEURONS / 2 + HIDDEN_NEURONS / 2> VLeaks = {};
 
     Genome();
 
@@ -35,7 +103,7 @@ struct Genome
 struct Player
 {
     NeuralNetwork Network = {};
-    std::array<SpikeEncoder, INPUT_NEURONS> InputState = {};
+    std::array<SpikeEncoder, INPUT_NEURON_COUNT> InputState = {};
     uint32_t PlayerIndex = 0;
 };
 
@@ -57,8 +125,8 @@ void ConstructNetwork(Individual& individual);
 struct NoisyEvalConfig
 {
     double WeightNoiseSigma = 0.2;
-    double TauMemNoiseSigma = 0.05;
-    double TauSynNoiseSigma = 0.2;
+    double TauMemNoiseSigma = 0.1;
+    double TauSynNoiseSigma = 0.1;
     double VThresholdNoiseSigma = 0.02;
 };
 

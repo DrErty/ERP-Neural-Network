@@ -233,11 +233,11 @@ static void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const std::
         const NeuralNetwork& baseNetwork = individuals[0].Players2[0].Network;
 
         constexpr uint32_t layerCount = 3;
-        constexpr std::array<uint32_t, layerCount> layerSizes = { INPUT_NEURONS, HIDDEN_NEURONS, OUTPUT_NEURONS };
-        constexpr std::array<uint32_t, layerCount> layerOffsets = { 0, INPUT_NEURONS, INPUT_NEURONS + HIDDEN_NEURONS };
+        constexpr std::array<uint32_t, layerCount> layerSizes = { INPUT_NEURON_COUNT, HIDDEN_NEURON_COUNT, OUTPUT_NEURON_COUNT };
+        constexpr std::array<uint32_t, layerCount> layerOffsets = { 0, INPUT_NEURON_COUNT, INPUT_NEURON_COUNT + HIDDEN_NEURON_COUNT };
 
         const float neuronRadius = 4.0f;
-        const float networkHeight = 30.0f + 20.0f * TOTAL_NEURONS + 20.0f;
+        const float networkHeight = 30.0f + 20.0f * TOTAL_NEURON_COUNT + 20.0f;
 
         Drawer::SetColor(renderer, { 10, 12, 20, 210 });
         Drawer::FillRect(renderer, posX, posY, barWidth, networkHeight);
@@ -254,8 +254,8 @@ static void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const std::
 
         const std::array<float, layerCount> layerX = { posX + barWidth * 0.18f, posX + barWidth * 0.50f, posX + barWidth * 0.82f };
 
-        std::array<float, TOTAL_NEURONS> neuronScreenX;
-        std::array<float, TOTAL_NEURONS> neuronScreenY;
+        std::array<float, TOTAL_NEURON_COUNT> neuronScreenX;
+        std::array<float, TOTAL_NEURON_COUNT> neuronScreenY;
         for (uint32_t layerIndex = 0; layerIndex < layerCount; ++layerIndex)
         {
             const uint32_t neuronsInLayer = layerSizes[layerIndex];
@@ -277,7 +277,7 @@ static void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const std::
         Drawer::DrawTextSlow(renderer, "HID", layerX[1] - 8.0f, panelTop - 2.0f, { 60, 220, 120, 160 }, Drawer::g_FontSmall);
         Drawer::DrawTextSlow(renderer, "OUT", layerX[2] - 8.0f, panelTop - 2.0f, { 255, 180, 60, 160 }, Drawer::g_FontSmall);
 
-        for (uint32_t postNeuronIndex = 0; postNeuronIndex < TOTAL_NEURONS; ++postNeuronIndex)
+        for (uint32_t postNeuronIndex = 0; postNeuronIndex < TOTAL_NEURON_COUNT; ++postNeuronIndex)
         {
             const Neuron& postNeuron = baseNetwork.Neurons[postNeuronIndex];
             for (uint32_t inputSlot = 0; inputSlot < MAX_INPUTS; ++inputSlot)
@@ -315,15 +315,15 @@ static void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const std::
             }
         }
 
-        for (uint32_t neuronIndex = 0; neuronIndex < TOTAL_NEURONS; ++neuronIndex)
+        for (uint32_t neuronIndex = 0; neuronIndex < TOTAL_NEURON_COUNT; ++neuronIndex)
         {
             const Neuron& neuron = baseNetwork.Neurons[neuronIndex];
-            const float activation = static_cast<float>(std::clamp(neuron.V_mem / neuron.V_threshold, 0.0, 1.0));
+            const float activation = static_cast<float>(std::clamp(neuron.V_mem / neuron.Params.VThreshold, 0.0, 1.0));
 
             Drawer::Col baseColor;
-            if (neuronIndex < INPUT_NEURONS)
+            if (neuronIndex < INPUT_NEURON_COUNT)
                 baseColor = { 100, 180, 255, 255 };
-            else if (neuronIndex < INPUT_NEURONS + HIDDEN_NEURONS)
+            else if (neuronIndex < INPUT_NEURON_COUNT + HIDDEN_NEURON_COUNT)
                 baseColor = { 60, 220, 120, 255 };
             else
                 baseColor = { 255, 180, 60, 255 };
@@ -476,7 +476,7 @@ static void StartTraining(const Renderer& renderer, Game& game, std::mt19937& rn
                 std::cout << "Fitness: " << lastBestIndividual->EvaluateFitness(game) << std::endl;
             }
 
-            const double alpha = std::clamp(static_cast<double>(gameState.Generation) / 1.0 - 1.0, 0.0, 1.0);
+            const double alpha = std::clamp(static_cast<double>(gameState.Generation) / 10.0 - 1.0, 0.0, 1.0);
 
             const double bestFitness = lastBestIndividual ? lastBestIndividual->EvaluateFitness(game) : 0.0;
             if (bestFitness > lastBestFitness * 0.9)
@@ -504,7 +504,7 @@ static void StartTraining(const Renderer& renderer, Game& game, std::mt19937& rn
             {
                 Individual& individual = nextIndividuals.emplace_back();
 
-                if (gameState.Generation >= 0)
+                if (gameState.Generation >= 10)
                     individual.EvalutationsPerGenome = MAX_EVALUTIONS_PER_GENOME;
 
                 if (individuals.size() >= EVOLUTION_MU)
@@ -600,17 +600,17 @@ static void StartTraining(const Renderer& renderer, Game& game, std::mt19937& rn
                         break;
                     }
 
-                    for (uint32_t inputIndex = 0; inputIndex < INPUT_NEURONS; inputIndex++)
+                    for (uint32_t inputIdx = 0; inputIdx < INPUT_NEURON_COUNT; inputIdx++)
                     {
-                        float input = game.GetInput(player.PlayerIndex, inputIndex);
-                        player.InputState[inputIndex].SetValue(input, 0.0f, 1.0f);
+                        float input = game.GetInput(player.PlayerIndex, inputIdx);
+                        player.InputState[inputIdx].SetValue(input, 0.0f, 1.0f);
                     }
 
                     for (uint32_t i = 0; i < NEURON_SUBSTEPS; i++)
                     {
                         const double substepDeltaTime = SIM_DT / static_cast<double>(NEURON_SUBSTEPS);
 
-                        for (uint32_t inputIndex = 0; inputIndex < INPUT_NEURONS; inputIndex++)
+                        for (uint32_t inputIndex = 0; inputIndex < INPUT_NEURON_COUNT; inputIndex++)
                         {
                             bool spike = player.InputState[inputIndex].Update(substepDeltaTime);
                             if (spike)
@@ -639,8 +639,8 @@ static void StartTraining(const Renderer& renderer, Game& game, std::mt19937& rn
                     if (!player.Network.Neurons[neuronIndex].PendingTrigger) continue;
                     player.Network.Neurons[neuronIndex].PendingTrigger = false;
 
-                    const int32_t outputIndex = neuronIndex - INPUT_NEURONS - HIDDEN_NEURONS;
-                    if (outputIndex >= 0 && outputIndex < OUTPUT_NEURONS)
+                    const int32_t outputIndex = neuronIndex - INPUT_NEURON_COUNT - HIDDEN_NEURON_COUNT;
+                    if (outputIndex >= 0 && outputIndex < OUTPUT_NEURON_COUNT)
                     {
                         if (!gameState.Disable)
                             game.Action(player.PlayerIndex, outputIndex);
