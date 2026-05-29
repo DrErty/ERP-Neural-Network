@@ -19,9 +19,9 @@ static constexpr std::array<NeuronParams, HIDDEN_NEURON_COUNT + OUTPUT_NEURON_CO
         // Neuron 1
         {
             .VDrive = 3.0,
-            .TauMem = 0.02,
+            .TauMem = 0.0330666,
             .TauSyn = 0.02,
-            .VLeak = 0.3,
+            .VLeak = 0.482946559996318,
             .VThreshold = 0.89
         },
         // Neuron 2
@@ -35,17 +35,17 @@ static constexpr std::array<NeuronParams, HIDDEN_NEURON_COUNT + OUTPUT_NEURON_CO
         // Neuron 3
         {
             .VDrive = 3.0,
-            .TauMem = 0.02,
+            .TauMem = 0.0232725,
             .TauSyn = 0.02,
-            .VLeak = 0.3,
+            .VLeak = 0.6280052380709833,
             .VThreshold = 0.89
         },
         // Neuron 4
         {
             .VDrive = 3.0,
-            .TauMem = 0.02,
+            .TauMem = 0.02471013,
             .TauSyn = 0.02,
-            .VLeak = 0.3,
+            .VLeak = 0.593853894281843,
             .VThreshold = 0.89
         },
         // Neuron 5
@@ -59,25 +59,25 @@ static constexpr std::array<NeuronParams, HIDDEN_NEURON_COUNT + OUTPUT_NEURON_CO
         // Neuron 6
         {
             .VDrive = 3.0,
-            .TauMem = 0.02,
+            .TauMem = 0.01524596,
             .TauSyn = 0.02,
-            .VLeak = 0.3,
+            .VLeak = 0.5725515709282208,
             .VThreshold = 0.89
         },
         // Neuron 7
         {
             .VDrive = 3.0,
-            .TauMem = 0.02,
+            .TauMem = 0.0115239,
             .TauSyn = 0.02,
-            .VLeak = 0.3,
+            .VLeak = 0.5532780402749436,
             .VThreshold = 0.89
         },
         // Neuron 8
         {
             .VDrive = 3.0,
-            .TauMem = 0.02,
+            .TauMem = 0.01565709,
             .TauSyn = 0.02,
-            .VLeak = 0.3,
+            .VLeak = 0.5275799994039073,
             .VThreshold = 0.89
         },
     }

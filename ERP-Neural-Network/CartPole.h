@@ -28,7 +28,7 @@ public:
     void Reset() override;
     void KillPlayer(uint32_t playerIndex) override;
 private:
-    static constexpr uint32_t PHYS_STEPS = 1;
+    static constexpr uint32_t PHYS_STEPS = 4;
 
     static constexpr double CART_MASS = 1.0;
     static constexpr double POLE_MASS = 0.5;

@@ -16,8 +16,8 @@ uint32_t CartPole::AddPlayer(bool display)
     const uint32_t playerIndex = static_cast<uint32_t>(m_Players.size());
     Player player;
     std::uniform_real_distribution<double> distribution(-1.0, 1.0);
-    //player.State.Theta = g_PI / 1.0 * (1.0 + 0.1 * distribution(m_Rng));
-    player.State.Theta = g_PI / 1.0 * (1.0);
+    player.State.Theta = g_PI / 1.0 * (1.0 + 0.1);
+    //player.State.Theta = g_PI / 1.0 * (1.0);
     //player.State.X = POSITION_NORM * distribution(m_Rng) * 0.95;
     player.State.X = 0.0;
     player.Display = display;

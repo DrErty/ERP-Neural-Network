@@ -14,6 +14,7 @@
 
 static constexpr double SIM_DT = 1.0 / 60.0; // Seconds
 static constexpr uint32_t NEURON_SUBSTEPS = 4;
+static constexpr uint32_t SERIAL_SUBSTEPS = 32;
 
 static constexpr float M_PI = 3.14159265f;
 static constexpr float NEURON_SIZE = 80.0f;
@@ -229,6 +230,7 @@ static void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const std::
     Drawer::DrawTextSlow(renderer, "Frame time: " + std::to_string(frameTime * 1000.0) + "ms", posX, (float)m_WinH - 52.0f,
         { 120, 130, 160, 200 }, Drawer::g_FontSmall);
 
+    if (individuals.size() > 0)
     {
         const NeuralNetwork& baseNetwork = individuals[0].Players2[0].Network;
 
@@ -756,6 +758,102 @@ static void StartSim(const Renderer& renderer, Game& game, std::mt19937& rng, In
     }
 }
 
+static void StartExp(const Renderer& renderer, Game& game, std::mt19937& rng)
+{
+    GameState gameState;
+
+    std::vector<double> history;
+
+    Player player = {};
+
+    serialib serial;
+    serial.openDevice("COM3", 38400);
+
+    std::string rxBuffer;
+
+    auto resetRound = [&]()
+        {
+            game.Reset();
+
+            player.PlayerIndex = game.AddPlayer(true);
+
+            for (uint32_t inputIndex = 0; inputIndex < INPUT_NEURON_COUNT; inputIndex++)
+                player.InputState[inputIndex].Reset();
+        };
+
+    resetRound();
+
+    double lastFrameTime = 0.0;
+    while (!gameState.Quit)
+    {
+        Frame frame = {};
+        if (gameState.Render)
+            frame = FrameStart(renderer);
+
+        HandleGameInputs(gameState);
+        game.Step(SIM_DT);
+
+        if (game.IsDone() || gameState.Skip || game.GetSimTime() > 60.0)
+        {
+            gameState.Skip = false;
+            resetRound();
+        }
+
+        for (uint32_t inputIdx = 0; inputIdx < INPUT_NEURON_COUNT; inputIdx++)
+        {
+            float input = game.GetInput(player.PlayerIndex, inputIdx);
+            player.InputState[inputIdx].SetValue(input, 0.0f, 1.0f);
+        }
+
+        for (uint32_t i = 0; i < SERIAL_SUBSTEPS; i++)
+        {
+            const double substepDeltaTime = SIM_DT / static_cast<double>(SERIAL_SUBSTEPS);
+
+            auto updateInput = [&](uint32_t inputIndex, char message)
+                {
+                    bool spike = player.InputState[inputIndex].Update(substepDeltaTime);
+                    if (spike)
+                    {
+                        std::array<char, 3> messageString = {};
+                        messageString[0] = message;
+                        messageString[1] = '\n';
+                        messageString[2] = '\0';
+                        serial.writeString(messageString.data());
+                    }
+                };
+
+            updateInput(0, '0');
+            updateInput(1, '1');
+            updateInput(6, '2');
+            updateInput(7, '3');
+        }
+
+        /*
+        for (uint32_t neuronIndex = 0; neuronIndex < player.Network.Neurons.size(); neuronIndex++)
+        {
+            if (!player.Network.Neurons[neuronIndex].PendingTrigger) continue;
+            player.Network.Neurons[neuronIndex].PendingTrigger = false;
+
+            const int32_t outputIndex = neuronIndex - INPUT_NEURON_COUNT - HIDDEN_NEURON_COUNT;
+            if (outputIndex >= 0 && outputIndex < OUTPUT_NEURON_COUNT)
+            {
+                if (!gameState.Disable)
+                    game.Action(player.PlayerIndex, outputIndex);
+            }
+        }
+        */
+
+        if (gameState.Render)
+        {
+            game.Render();
+
+            std::vector<Individual> simIndividuals;
+            DrawSidebar(renderer.Renderer, gameState.Generation, simIndividuals, game, history, 0.0, lastFrameTime);
+
+            lastFrameTime = FrameEnd(renderer, frame, gameState.SpeedUp);
+        }
+    }
+}
 
 /*
 static void StartSim(const Renderer& renderer, FlappyBird& game)
@@ -830,8 +928,12 @@ int main(int argc, char* argv[])
     std::mt19937 rng(std::random_device{}());
     CartPole game(renderer.Renderer, rng);
 
+#if 0
     Individual bestIndividual = StartTraining(renderer, game, rng);
     StartSim(renderer, game, rng, bestIndividual);
+#else
+    StartExp(renderer, game, rng);
+#endif
 
     StopSDL(renderer);
     
