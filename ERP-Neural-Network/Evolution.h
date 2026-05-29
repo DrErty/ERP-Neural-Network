@@ -124,9 +124,9 @@ void ConstructNetwork(Individual& individual);
 
 struct NoisyEvalConfig
 {
-    double WeightNoiseSigma = 0.2;
-    double TauMemNoiseSigma = 0.1;
-    double TauSynNoiseSigma = 0.1;
+    double WeightNoiseSigma = 0.4;
+    double TauMemNoiseSigma = 0.2;
+    double TauSynNoiseSigma = 0.2;
     double VThresholdNoiseSigma = 0.02;
 };
 

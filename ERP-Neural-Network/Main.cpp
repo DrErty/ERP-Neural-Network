@@ -13,7 +13,7 @@
 #include "Evolution.h"
 
 static constexpr double SIM_DT = 1.0 / 60.0; // Seconds
-static constexpr uint32_t NEURON_SUBSTEPS = 16;
+static constexpr uint32_t NEURON_SUBSTEPS = 4;
 
 static constexpr float M_PI = 3.14159265f;
 static constexpr float NEURON_SIZE = 80.0f;
@@ -450,7 +450,7 @@ static void HandleGameInputs(GameState& gameState)
     }
 }
 
-static void StartTraining(const Renderer& renderer, Game& game, std::mt19937& rng)
+static Individual StartTraining(const Renderer& renderer, Game& game, std::mt19937& rng)
 {
     GameState gameState;
 
@@ -657,7 +657,105 @@ static void StartTraining(const Renderer& renderer, Game& game, std::mt19937& rn
             lastFrameTime = FrameEnd(renderer, frame, gameState.SpeedUp);
         }
     }
+
+    if (individuals.size() > 0)
+        return individuals[0];
+    else
+        return {};
 }
+
+static void StartSim(const Renderer& renderer, Game& game, std::mt19937& rng, Individual& simIndividual)
+{
+    GameState gameState;
+
+    std::vector<double> history;
+
+    simIndividual.BaseNetwork = {};
+    ConstructNetwork(simIndividual);
+    simIndividual.EvalutationsPerGenome = 1;
+
+    auto resetRound = [&]()
+        {
+            game.Reset();
+
+            Player& player = simIndividual.Players2[0];
+            player.PlayerIndex = game.AddPlayer(true);
+            player.Network = simIndividual.BaseNetwork;
+
+            VaryNetwork(player.Network, rng, 1.0);
+
+            for (uint32_t inputIndex = 0; inputIndex < INPUT_NEURON_COUNT; inputIndex++)
+                player.InputState[inputIndex].Reset();
+        };
+
+    resetRound();
+
+    double lastFrameTime = 0.0;
+    while (!gameState.Quit)
+    {
+        Frame frame = {};
+        if (gameState.Render)
+            frame = FrameStart(renderer);
+
+        HandleGameInputs(gameState);
+        game.Step(SIM_DT);
+
+        if (game.IsDone() || gameState.Skip || game.GetSimTime() > 60.0)
+        {
+            gameState.Skip = false;
+            resetRound();
+        }
+
+        Player& player = simIndividual.Players2[0];
+
+        if (game.PlayerAlive(player.PlayerIndex))
+        {
+            for (uint32_t inputIdx = 0; inputIdx < INPUT_NEURON_COUNT; inputIdx++)
+            {
+                float input = game.GetInput(player.PlayerIndex, inputIdx);
+                player.InputState[inputIdx].SetValue(input, 0.0f, 1.0f);
+            }
+
+            for (uint32_t i = 0; i < NEURON_SUBSTEPS; i++)
+            {
+                const double substepDeltaTime = SIM_DT / static_cast<double>(NEURON_SUBSTEPS);
+
+                for (uint32_t inputIndex = 0; inputIndex < INPUT_NEURON_COUNT; inputIndex++)
+                {
+                    bool spike = player.InputState[inputIndex].Update(substepDeltaTime);
+                    if (spike)
+                        player.Network.TriggerConnected(inputIndex);
+                }
+
+                UpdateNetwork(player.Network, substepDeltaTime);
+            }
+
+            for (uint32_t neuronIndex = 0; neuronIndex < player.Network.Neurons.size(); neuronIndex++)
+            {
+                if (!player.Network.Neurons[neuronIndex].PendingTrigger) continue;
+                player.Network.Neurons[neuronIndex].PendingTrigger = false;
+
+                const int32_t outputIndex = neuronIndex - INPUT_NEURON_COUNT - HIDDEN_NEURON_COUNT;
+                if (outputIndex >= 0 && outputIndex < OUTPUT_NEURON_COUNT)
+                {
+                    if (!gameState.Disable)
+                        game.Action(player.PlayerIndex, outputIndex);
+                }
+            }
+        }
+
+        if (gameState.Render)
+        {
+            game.Render();
+
+            std::vector<Individual> simIndividuals = { simIndividual };
+            DrawSidebar(renderer.Renderer, gameState.Generation, simIndividuals, game, history, 0.0, lastFrameTime);
+
+            lastFrameTime = FrameEnd(renderer, frame, gameState.SpeedUp);
+        }
+    }
+}
+
 
 /*
 static void StartSim(const Renderer& renderer, FlappyBird& game)
@@ -732,8 +830,8 @@ int main(int argc, char* argv[])
     std::mt19937 rng(std::random_device{}());
     CartPole game(renderer.Renderer, rng);
 
-    //StartSim(renderer, game);
-    StartTraining(renderer, game, rng);
+    Individual bestIndividual = StartTraining(renderer, game, rng);
+    StartSim(renderer, game, rng, bestIndividual);
 
     StopSDL(renderer);
     
