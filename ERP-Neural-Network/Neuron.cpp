@@ -6,16 +6,15 @@ void SpikeEncoder::SetValue(float value, float valueMin, float valueMax)
     m_CurrentRate = m_MinRate + normalised * (m_MaxRate - m_MinRate);
 }
 
-bool SpikeEncoder::Update(float dt)
+uint32_t SpikeEncoder::Update(float dt)
 {
-    if (m_CurrentRate <= 0.0f) return false;
+    if (m_CurrentRate <= 0.0f) return 0;
     m_Phase += m_CurrentRate * dt;
-    if (m_Phase >= 1.0f)
-    {
-        m_Phase -= 1.0f;
-        return true;
-    }
-    return false;
+
+    const uint32_t rounded = static_cast<uint32_t>(m_Phase);
+    m_Phase -= rounded;
+
+    return rounded;
 }
 
 uint32_t GetNeuronIdxComplement(uint32_t neuronIdx)
@@ -73,48 +72,14 @@ bool ConnectNeurons(NeuralNetwork& network, int8_t inputNeuron, int8_t outputNeu
 
     network.Neurons[outputNeuron].OutputConnections[outputSyn] = inputNeuron;
     network.Neurons[inputNeuron].InputConnections[inputSyn] = outputNeuron;
-    network.Neurons[inputNeuron].Weights[inputSyn] = weight;
+    network.Weights[inputNeuron][inputSyn] = weight;
+
+    network.Neurons[outputNeuron].OutputConnectionsSynapseIdx[outputSyn] = inputSyn;
 
     return true;
 }
 
-void UpdateNetwork(NeuralNetwork& network, double dt)
-{
-    for (uint32_t i = 0; i < TOTAL_NEURON_COUNT; i++)
-    {
-        Neuron& neuron = network.Neurons[i];
-        if (neuron.Inactive) continue;
-
-        double I_syn = 0.0;
-        for (uint32_t j = 0; j < MAX_INPUTS; j++)
-        {
-            neuron.I_in[j] += (-neuron.I_in[j] / neuron.Params.TauSyn) * dt; // Expontential Decay
-            I_syn += neuron.Weights[j] * neuron.I_in[j];
-        }
-
-        neuron.RefracTime -= dt;
-        if (neuron.RefracTime <= 0.0)
-        {
-            const double dV = (-(neuron.V_mem - neuron.Params.VLeak) + I_syn) / neuron.Params.TauMem;
-            neuron.V_mem += dV * dt;
-            if (neuron.V_mem < 0.0)
-            {
-                neuron.V_mem = 0.0;
-            }
-        }
-
-        // Check if should trigger
-        if (neuron.V_mem >= neuron.Params.VThreshold)
-        {
-            network.TriggerConnected(i);
-            neuron.V_mem = 0;
-            neuron.RefracTime = REFRAC_TIME;
-            neuron.PendingTrigger = true;
-        }
-    }
-}
-
-void NeuralNetwork::TriggerConnected(int8_t neuronIndex)
+void NeuralNetwork::TriggerConnected(int8_t neuronIndex, uint32_t count)
 {
     Neuron& neuron = Neurons[neuronIndex];
     for (uint32_t j = 0; j < MAX_OUTPUTS; j++)
@@ -122,14 +87,56 @@ void NeuralNetwork::TriggerConnected(int8_t neuronIndex)
         int8_t toIndex = neuron.OutputConnections[j];
         if (toIndex == -1) continue;
 
-        int32_t inputSyn = -1;
-        for (uint32_t k = 0; k < MAX_INPUTS; k++)
-        {
-            if (Neurons[toIndex].InputConnections[k] == neuronIndex)
-                inputSyn = k;
-        }
-        Assert(inputSyn != -1);
+        int8_t inputSyn = neuron.OutputConnectionsSynapseIdx[j];
 
-        Neurons[toIndex].I_in[inputSyn] = 1.0;
+        I_in[toIndex][inputSyn] += 1.0 * static_cast<double>(count);
     }
+}
+
+void NeuralNetwork::UpdateNetwork(double dt)
+{
+    for (uint32_t neuronIdx = 0; neuronIdx < TOTAL_NEURON_COUNT; neuronIdx++)
+    {
+        if (InactiveNeurons[neuronIdx]) continue;
+
+        double I_syn = 0.0;
+        for (uint32_t j = 0; j < MAX_INPUTS; j++)
+        {
+            I_in[neuronIdx][j] *= DecayRates[neuronIdx];
+            I_syn += Weights[neuronIdx][j] * I_in[neuronIdx][j];
+        }
+
+        RefracTime[neuronIdx] -= dt;
+        if (RefracTime[neuronIdx] <= 0.0)
+        {
+            const double dV = (-(VMem[neuronIdx] - Params[neuronIdx].VLeak) + I_syn) / Params[neuronIdx].TauMem;
+            VMem[neuronIdx] += dV * dt;
+            if (VMem[neuronIdx] < 0.0)
+            {
+                VMem[neuronIdx] = 0.0;
+            }
+        }
+
+        // Check if should trigger
+        if (VMem[neuronIdx] >= Params[neuronIdx].VThreshold)
+        {
+            TriggerConnected(neuronIdx, 1);
+            VMem[neuronIdx] = 0;
+            RefracTime[neuronIdx] = REFRAC_TIME;
+            PendingTrigger[neuronIdx] = true;
+        }
+    }
+}
+
+void NeuralNetwork::SetParams(uint32_t neuronIndex, const NeuronParams& params)
+{
+    constexpr double dt = SIM_DT / static_cast<double>(NEURON_SUBSTEPS);
+
+    Params[neuronIndex] = params;
+    DecayRates[neuronIndex] = std::exp(-dt / params.TauSyn);
+}
+
+const NeuronParams& NeuralNetwork::GetParams(uint32_t neuronIndex) const
+{
+    return Params[neuronIndex];
 }

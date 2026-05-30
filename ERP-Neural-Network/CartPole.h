@@ -7,9 +7,9 @@
 class CartPole : public Game
 {
 public:
-    CartPole(SDL_Renderer* renderer, std::mt19937& rng, uint32_t gameHeight = Drawer::DEFAULT_WINDOW_HEIGHT, uint32_t gameWidth = Drawer::DEFAULT_WINDOW_WIDTH);
+    CartPole(SDL_Renderer* renderer, uint32_t gameHeight = Drawer::DEFAULT_WINDOW_HEIGHT, uint32_t gameWidth = Drawer::DEFAULT_WINDOW_WIDTH);
 
-    uint32_t AddPlayer(bool display) override;
+    uint32_t AddPlayer(bool display, std::mt19937& rng) override;
 
     void Action(uint32_t playerIndex, uint32_t outputIndex) override;
     float GetInput(uint32_t playerIndex, uint32_t inputIndex) const override;
@@ -19,7 +19,7 @@ public:
     uint32_t PlayerCount() const override { return static_cast<uint32_t>(m_Players.size()); }
     uint32_t AliveCount() const override { return m_AliveCount; }
 
-    void Step(float dt) override;
+    void Step(float dt, bool strictMode) override;
     void Render() override;
 
     bool IsDone() const override { return m_Done; }
@@ -31,7 +31,7 @@ private:
     static constexpr uint32_t PHYS_STEPS = 4;
 
     static constexpr double CART_MASS = 1.0;
-    static constexpr double POLE_MASS = 0.5;
+    static constexpr double POLE_MASS = 0.1;
     static constexpr double POLE_HALF_LENGTH = 0.5;
     static constexpr double GRAVITY_ACCEL = 9.81;
     static constexpr double FORCE_MAGNITUDE = 12.0;
@@ -42,7 +42,11 @@ private:
     static constexpr float POSITION_NORM = 4.0f;
     static constexpr float CART_VEL_NORM = 16.0f;
 
-    static constexpr float MOTOR_RESET_TIME = 0.05f;
+    static constexpr double MOTOR_RESET_TIME = 0.05;
+
+    static constexpr double KILL_TIME = 10.0;
+
+    static constexpr bool MOVING_CAMERA = false;
 
     struct PhysicsState
     {
@@ -74,7 +78,6 @@ private:
     void DrawPlayer(const Player& player, bool isBest, double cameraX) const;
 
     SDL_Renderer* m_Renderer;
-    std::mt19937& m_Rng;
 
     uint32_t m_GameHeight;
     uint32_t m_GameWidth;

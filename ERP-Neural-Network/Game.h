@@ -7,7 +7,7 @@ class Game
 public:
     virtual ~Game() = default;
 
-    virtual uint32_t AddPlayer(bool display) = 0;
+    virtual uint32_t AddPlayer(bool display, std::mt19937& rng) = 0;
 
     virtual void Action(uint32_t playerIndex, uint32_t outputIndex) = 0;
     virtual float GetInput(uint32_t playerIndex, uint32_t inputIndex) const = 0;
@@ -17,7 +17,7 @@ public:
     virtual uint32_t PlayerCount() const = 0;
     virtual uint32_t AliveCount() const = 0;
 
-    virtual void Step(float dt) = 0;
+    virtual void Step(float dt, bool strictMode) = 0;
     virtual void Render() = 0;
 
     virtual bool IsDone() const = 0;

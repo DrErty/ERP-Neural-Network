@@ -3,23 +3,20 @@
 #include <algorithm>
 #include <cmath>
 
-CartPole::CartPole(SDL_Renderer* renderer, std::mt19937& rng, uint32_t gameHeight, uint32_t gameWidth)
+CartPole::CartPole(SDL_Renderer* renderer, uint32_t gameHeight, uint32_t gameWidth)
     : m_Renderer(renderer)
-    , m_Rng(rng)
     , m_GameHeight(gameHeight)
     , m_GameWidth(gameWidth)
 {
 }
 
-uint32_t CartPole::AddPlayer(bool display)
+uint32_t CartPole::AddPlayer(bool display, std::mt19937& rng)
 {
     const uint32_t playerIndex = static_cast<uint32_t>(m_Players.size());
     Player player;
     std::uniform_real_distribution<double> distribution(-1.0, 1.0);
-    player.State.Theta = g_PI / 1.0 * (1.0 + 0.1);
-    //player.State.Theta = g_PI / 1.0 * (1.0);
-    //player.State.X = POSITION_NORM * distribution(m_Rng) * 0.95;
-    player.State.X = 0.0;
+    player.State.Theta = g_PI / 1.0 * (1.0 + 0.001 * distribution(rng));
+    //player.State.X = POSITION_NORM * distribution(rng) * 0.95;
     player.Display = display;
 
     if (playerIndex == 0)
@@ -42,9 +39,17 @@ void CartPole::Action(uint32_t playerIndex, uint32_t outputIndex)
     if (!player.Alive) return;
 
     if (outputIndex == 0)
-        player.PendingForce += -static_cast<float>(FORCE_MAGNITUDE);
+    {
+        //if (player.PendingForce > 0.0)
+        //    player.PendingForce = 0.0;
+        player.PendingForce -= static_cast<float>(FORCE_MAGNITUDE);
+    }
     if (outputIndex == 1)
+    {
+        //if (player.PendingForce < 0.0)
+        //    player.PendingForce = 0.0;
         player.PendingForce += static_cast<float>(FORCE_MAGNITUDE);
+    }
 }
 
 float CartPole::GetInput(uint32_t playerIndex, uint32_t inputIndex) const
@@ -102,17 +107,16 @@ CartPole::PhysicsState CartPole::StepPhysics(const PhysicsState& state, double f
 
 bool CartPole::IsTerminal(const PhysicsState& state) const
 {
-    //return std::abs(state.Theta) > ANGLE_LIMIT || std::abs(state.X) > static_cast<double>(POSITION_NORM);
-    return std::abs(state.Theta) > ANGLE_LIMIT;
+    return std::abs(state.X) > static_cast<double>(POSITION_NORM);
 }
 
-void CartPole::Step(float dt)
+void CartPole::Step(float dt, bool strictMode)
 {
     if (m_Done) return;
 
     const double physDt = static_cast<double>(dt) / static_cast<double>(PHYS_STEPS);
 
-    if (m_Players.size() > 0)
+    if (m_Players.size() > 0 and MOVING_CAMERA)
     {
         Player& lastBestPlayer = m_Players[0];
         for (uint32_t substep = 0; substep < PHYS_STEPS; ++substep)
@@ -122,8 +126,6 @@ void CartPole::Step(float dt)
             m_CameraX += m_CameraSpeed * physDt;
             m_CameraX += (lastBestPlayer.State.X - m_CameraX) * physDt * 1.0;
         }
-
-        //std::printf("%.1f\n", lastBestPlayer.State.ThetaDot);
     }
 
     for (auto& player : m_Players)
@@ -132,10 +134,7 @@ void CartPole::Step(float dt)
         m_AlivePlayers.emplace_back(&player);
     }
 
-    //std::cout << "Alive count" << m_AlivePlayers.size() << '\n';
-    //std::cout << "Alive count 2" << m_AliveCount << '\n';
-
-    std::for_each(std::execution::par, m_AlivePlayers.begin(), m_AlivePlayers.end(), [this, physDt](Player* player)
+    std::for_each(std::execution::par, m_AlivePlayers.begin(), m_AlivePlayers.end(), [this, physDt, strictMode](Player* player)
         {
             for (uint32_t substep = 0; substep < PHYS_STEPS; ++substep)
             {
@@ -146,11 +145,22 @@ void CartPole::Step(float dt)
 
                 const double angleFraction = 1.0 - std::abs(player->State.Theta) / ANGLE_LIMIT;
                 const double positionFraction = 1.0 - std::min(1.0, std::abs(player->State.X) / static_cast<double>(POSITION_NORM));
-                player->Fitness += physDt;
-                player->Fitness += std::max(0.0, std::abs(angleFraction) * angleFraction) * physDt * 100.0;
-                player->Fitness += std::max(0.0, positionFraction) * physDt * 1.0;
-                player->Fitness -= std::abs(player->State.XDot) / static_cast<double>(CART_VEL_NORM) * physDt * 1.0;
-                player->Fitness -= std::abs(player->State.ThetaDot) / static_cast<double>(ANGULAR_VEL_NORM) * physDt * 3.0;
+                if (!strictMode)
+                {
+                    player->Fitness += physDt;
+                    player->Fitness += std::max(0.0, std::abs(angleFraction) * angleFraction) * physDt * 100.0;
+                    player->Fitness += std::max(0.0, positionFraction) * physDt * 1.0;
+                    player->Fitness -= std::abs(player->State.XDot) / static_cast<double>(CART_VEL_NORM) * physDt * 1.0;
+                    player->Fitness -= std::abs(player->State.ThetaDot) / static_cast<double>(ANGULAR_VEL_NORM) * physDt * 3.0;
+                }
+                else
+                {
+                    player->Fitness += physDt;
+                    player->Fitness += std::max(0.0, std::abs(angleFraction) * angleFraction) * physDt * 100.0;
+                    player->Fitness += std::max(0.0, positionFraction) * physDt * 100.0;
+                    player->Fitness -= std::abs(player->State.XDot) / static_cast<double>(CART_VEL_NORM) * physDt * 50.0;
+                    player->Fitness -= std::abs(player->State.ThetaDot) / static_cast<double>(ANGULAR_VEL_NORM) * physDt * 30.0;
+                }
             }
         });
 
@@ -158,7 +168,7 @@ void CartPole::Step(float dt)
 
     for (auto& player : m_Players)
     {
-        if (player.State.Theta <= g_PI / 2.0 and player.State.Theta >= -g_PI / 2.0)
+        if (player.State.Theta <= g_PI / 4.0 and player.State.Theta >= -g_PI / 4.0)
             player.HeldUp = true;
         else
         {
@@ -167,6 +177,12 @@ void CartPole::Step(float dt)
                 player.Alive = false;
                 --m_AliveCount;
             }
+        }
+
+        if ((m_SimTime > KILL_TIME) and (not player.HeldUp))
+        {
+            player.Alive = false;
+            --m_AliveCount;
         }
 
         if (IsTerminal(player.State) and player.Alive)
