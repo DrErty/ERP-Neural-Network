@@ -2,9 +2,7 @@
 
 void NeuronParams::Print() const
 {
-    std::cout << "Params:\n";
-    std::cout << "TauMem: " << TauMem << '\n';
-    std::cout << "TauSyn: " << TauSyn << '\n';
+    std::cout << "Params: " << "TauMem: " << TauMem << ", TauSyn: " << TauSyn << '\n';
 }
 
 void SpikeEncoder::SetValue(float value, float valueMin, float valueMax)

@@ -23,8 +23,8 @@ static constexpr float METER_GAP = 8.0f;
 static constexpr double MAX_GAME_TIME = 30.0;
 
 static constexpr uint32_t STRICT_MODE_START = 1;
-static constexpr uint32_t ALPHA_START = 1;
-static constexpr uint32_t ALPHA_DURATION = 1;
+static constexpr uint32_t ALPHA_START = 50;
+static constexpr uint32_t ALPHA_DURATION = 10;
 static constexpr uint32_t MULTI_EVAL_START = 1;
 
 struct Renderer

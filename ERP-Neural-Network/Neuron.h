@@ -11,7 +11,7 @@ static constexpr uint32_t MAX_INPUTS = 3;
 static constexpr uint32_t MAX_OUTPUTS = 3;
 
 static constexpr uint32_t INPUT_NEURON_COUNT = 8;
-static constexpr uint32_t HIDDEN_NEURON_COUNT = 8;
+static constexpr uint32_t HIDDEN_NEURON_COUNT = 6;
 static constexpr uint32_t OUTPUT_NEURON_COUNT = 2;
 static constexpr uint32_t TOTAL_NEURON_COUNT = INPUT_NEURON_COUNT + HIDDEN_NEURON_COUNT + OUTPUT_NEURON_COUNT;
 
