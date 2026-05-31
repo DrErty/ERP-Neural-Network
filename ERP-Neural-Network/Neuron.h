@@ -2,17 +2,20 @@
 
 #include "ERP.h"
 
-static constexpr double REFRAC_TIME = 12 / 1000.0; // Seconds
+static constexpr double REFRAC_TIME = 13.0 / 1000.0; // Seconds
+static constexpr double PULSE_TIME = 12.0 / 1000.0;
 
-static constexpr double MAX_WEIGHT = 0.5;
+static constexpr double MAX_WEIGHT = 1.0;
 
 static constexpr uint32_t MAX_INPUTS = 3;
 static constexpr uint32_t MAX_OUTPUTS = 3;
 
 static constexpr uint32_t INPUT_NEURON_COUNT = 8;
-static constexpr uint32_t HIDDEN_NEURON_COUNT = 4;
+static constexpr uint32_t HIDDEN_NEURON_COUNT = 2;
 static constexpr uint32_t OUTPUT_NEURON_COUNT = 2;
 static constexpr uint32_t TOTAL_NEURON_COUNT = INPUT_NEURON_COUNT + HIDDEN_NEURON_COUNT + OUTPUT_NEURON_COUNT;
+
+using NeuronIdx = int8_t;
 
 struct NeuronParams
 {
@@ -26,7 +29,7 @@ struct NeuronParams
 class SpikeEncoder
 {
 public:
-    SpikeEncoder(float maxRate = 1000.0f, float minRate = 0.0f)
+    SpikeEncoder(float maxRate = 2.0 / REFRAC_TIME, float minRate = 0.0f)
         : m_MaxRate(maxRate), m_MinRate(minRate), m_CurrentRate(0.0f), m_Phase(0.0f) {}
 
     void SetValue(float value, float valueMin, float valueMax);
@@ -43,10 +46,10 @@ private:
     float m_Phase;
 };
 
-uint32_t GetNeuronIdxComplement(uint32_t neuronIdx);
-uint32_t GetNeuronIdxFromInputIdx(uint32_t inputIdx);
-uint32_t GetNeuronIdxFromHiddenIdx(uint32_t hiddenIdx);
-uint32_t GetNeuronIdxFromOutputIdx(uint32_t outputIdx);
+NeuronIdx GetNeuronIdxComplement(NeuronIdx neuronIdx);
+NeuronIdx GetNeuronIdxFromInputIdx(NeuronIdx inputIdx);
+NeuronIdx GetNeuronIdxFromHiddenIdx(NeuronIdx hiddenIdx);
+NeuronIdx GetNeuronIdxFromOutputIdx(NeuronIdx outputIdx);
 
 struct Neuron
 {
@@ -79,7 +82,7 @@ struct NeuralNetwork
     std::array<bool, TOTAL_NEURON_COUNT> PendingTrigger = {};
     std::array<bool, TOTAL_NEURON_COUNT> InactiveNeurons = {};
 
-    void TriggerConnected(int8_t neuronIndex, uint32_t count);
+    void TriggerConnected(int8_t neuronIndex, uint32_t count, double duration = PULSE_TIME);
     void UpdateNetwork(double dt);
 
     void SetParams(uint32_t neuronIndex, const NeuronParams& params);

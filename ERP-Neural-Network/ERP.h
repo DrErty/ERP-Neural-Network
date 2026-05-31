@@ -13,11 +13,12 @@
 #include <vector>
 #include <limits>
 #include <utility>
+#include <bitset>
 
 #define NOMINMAX
 
 static constexpr double SIM_DT = 1.0 / 60.0; // Seconds
-static constexpr uint32_t NEURON_SUBSTEPS = 4;
+static constexpr uint32_t NEURON_SUBSTEPS = 8;
 static constexpr uint32_t SERIAL_SUBSTEPS = 32;
 
 static constexpr double g_PI = 3.1415926535897932384626433832;

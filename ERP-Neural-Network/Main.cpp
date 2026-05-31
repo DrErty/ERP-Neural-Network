@@ -22,9 +22,10 @@ static constexpr float METER_GAP = 8.0f;
 
 static constexpr double MAX_GAME_TIME = 30.0;
 
-static constexpr uint32_t STRICT_MODE_START = 10;
+static constexpr uint32_t STRICT_MODE_START = 1;
 static constexpr uint32_t ALPHA_START = 20;
-static constexpr uint32_t ALPHA_DURATION = 20;
+static constexpr uint32_t ALPHA_DURATION = 10;
+static constexpr uint32_t MULTI_EVAL_START = 1;
 
 struct Renderer
 {
@@ -196,7 +197,7 @@ static void UpdatePlayer(const Game& game, Player& player)
     {
         const uint32_t spikeCount = player.InputState[inputIndex].Update(SIM_DT);
         if (spikeCount > 0)
-            player.Network.TriggerConnected(inputIndex, spikeCount);
+            player.Network.TriggerConnected(inputIndex, spikeCount, PULSE_TIME / 2.0);
     }
 
     for (uint32_t i = 0; i < NEURON_SUBSTEPS; i++)
@@ -254,7 +255,7 @@ static Individual StartTraining(const Renderer& renderer, Game& game, std::mt199
             {
                 Individual& individual = nextIndividuals.emplace_back();
 
-                if (gameState.Generation >= ALPHA_START)
+                if (gameState.Generation >= MULTI_EVAL_START)
                     individual.EvalutationsPerGenome = MAX_EVALUTIONS_PER_GENOME;
 
                 if (individualIndex >= 1 and individuals.size() > 0)
@@ -511,27 +512,34 @@ static void StartExp(const Renderer& renderer, Game& game, std::mt19937& rng)
 
         UpdateInputs(game, player);
 
-        for (uint32_t i = 0; i < SERIAL_SUBSTEPS; i++)
+        for (uint32_t serialIdx = 0; serialIdx < SERIAL_SUBSTEPS; serialIdx++)
         {
             const double substepDeltaTime = SIM_DT / static_cast<double>(SERIAL_SUBSTEPS);
 
-            auto updateInput = [&](uint32_t inputIndex, char message)
+            constexpr uint32_t bitCount = 8;
+            std::bitset<bitCount> spikedMask(0);
+            static_assert(INPUT_NEURON_COUNT <= bitCount);
+
+            auto updateInput = [&](uint32_t inputIndex)
                 {
-                    bool spike = player.InputState[inputIndex].Update(substepDeltaTime);
-                    if (spike)
+                    const uint32_t spikeCount = player.InputState[inputIndex].Update(substepDeltaTime);
+                    if (spikeCount > 1)
                     {
-                        std::array<char, 3> messageString = {};
-                        messageString[0] = message;
-                        messageString[1] = '\n';
-                        messageString[2] = '\0';
-                        serial.writeString(messageString.data());
+                        std::cout << "Critical error, SERIAL_SUBSTEPS is too low, skipping spikes.\n";
+                    }
+                    if (spikeCount > 0)
+                    {
+                        spikedMask[inputIndex] = true;
                     }
                 };
 
-            updateInput(0, '0');
-            updateInput(1, '1');
-            updateInput(6, '2');
-            updateInput(7, '3');
+            for (uint32_t inputIdx = 0; inputIdx < INPUT_NEURON_COUNT; inputIdx++)
+                updateInput(inputIdx);
+            
+            if (serial.writeChar(static_cast<char>(spikedMask.to_ullong())) == -1)
+            {
+                std::cout << "Error writing to serial buffer, is the port connected?\n";
+            }
         }
 
         if (gameState.Render)
@@ -553,7 +561,7 @@ int main(int argc, char* argv[])
     std::mt19937 rng(std::random_device{}());
     CartPole game(renderer.Renderer);
 
-#if 1
+#if 0
     Individual bestIndividual = StartTraining(renderer, game, rng);
     StartSim(renderer, game, rng, bestIndividual);
 #else

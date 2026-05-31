@@ -15,7 +15,7 @@ uint32_t CartPole::AddPlayer(bool display, std::mt19937& rng)
     const uint32_t playerIndex = static_cast<uint32_t>(m_Players.size());
     Player player;
     std::uniform_real_distribution<double> distribution(-1.0, 1.0);
-    player.State.Theta = g_PI / 1.0 * (1.0 + 0.001 * distribution(rng));
+    player.State.Theta = g_PI / 4.0 * (distribution(rng));
     //player.State.X = POSITION_NORM * distribution(rng) * 0.95;
     player.Display = display;
 
@@ -58,17 +58,32 @@ float CartPole::GetInput(uint32_t playerIndex, uint32_t inputIndex) const
 
     const PhysicsState& state = m_Players[playerIndex].State;
 
-    if (inputIndex == 0) return std::max(0.0f, static_cast<float>(state.Theta) / ANGLE_NORM);
-    if (inputIndex == 7) return std::max(0.0f, static_cast<float>(-state.Theta) / ANGLE_NORM);
+    if (INPUT_NEURON_COUNT == 8)
+    {
+        if (inputIndex == 0) return std::max(0.0f, static_cast<float>(state.Theta) / ANGLE_NORM);
+        if (inputIndex == 7) return std::max(0.0f, static_cast<float>(-state.Theta) / ANGLE_NORM);
 
-    if (inputIndex == 1) return std::max(0.0f, static_cast<float>(state.ThetaDot) / ANGULAR_VEL_NORM);
-    if (inputIndex == 6) return std::max(0.0f, static_cast<float>(-state.ThetaDot) / ANGULAR_VEL_NORM);
+        if (inputIndex == 1) return std::max(0.0f, static_cast<float>(state.ThetaDot) / ANGULAR_VEL_NORM);
+        if (inputIndex == 6) return std::max(0.0f, static_cast<float>(-state.ThetaDot) / ANGULAR_VEL_NORM);
 
-    if (inputIndex == 2) return std::max(0.0f, static_cast<float>(state.X) / POSITION_NORM);
-    if (inputIndex == 5) return std::max(0.0f, static_cast<float>(-state.X) / POSITION_NORM);
+        if (inputIndex == 2) return std::max(0.0f, static_cast<float>(state.X) / POSITION_NORM);
+        if (inputIndex == 5) return std::max(0.0f, static_cast<float>(-state.X) / POSITION_NORM);
 
-    if (inputIndex == 3) return std::max(0.0f, static_cast<float>(state.XDot) / CART_VEL_NORM);
-    if (inputIndex == 4) return std::max(0.0f, static_cast<float>(-state.XDot) / CART_VEL_NORM);
+        if (inputIndex == 3) return std::max(0.0f, static_cast<float>(state.XDot) / CART_VEL_NORM);
+        if (inputIndex == 4) return std::max(0.0f, static_cast<float>(-state.XDot) / CART_VEL_NORM);
+    }
+    else if (INPUT_NEURON_COUNT == 4)
+    {
+        if (inputIndex == 0) return std::max(0.0f, static_cast<float>(state.Theta) / ANGLE_NORM);
+        if (inputIndex == 3) return std::max(0.0f, static_cast<float>(-state.Theta) / ANGLE_NORM);
+
+        if (inputIndex == 1) return std::max(0.0f, static_cast<float>(state.ThetaDot) / ANGULAR_VEL_NORM);
+        if (inputIndex == 2) return std::max(0.0f, static_cast<float>(-state.ThetaDot) / ANGULAR_VEL_NORM);
+    }
+    else
+    {
+        Assert(false);
+    }
 
     return 0.0f;
 }
@@ -144,6 +159,7 @@ void CartPole::Step(float dt, bool strictMode)
                 player->State = StepPhysics(player->State, appliedForce, physDt);
 
                 const double angleFraction = 1.0 - std::abs(player->State.Theta) / ANGLE_LIMIT;
+                const double angleDotFraction = 1.0 - std::abs(player->State.ThetaDot) / static_cast<double>(ANGULAR_VEL_NORM);
                 const double positionFraction = 1.0 - std::min(1.0, std::abs(player->State.X) / static_cast<double>(POSITION_NORM));
                 if (!strictMode)
                 {
@@ -157,9 +173,9 @@ void CartPole::Step(float dt, bool strictMode)
                 {
                     player->Fitness += physDt;
                     player->Fitness += std::max(0.0, std::abs(angleFraction) * angleFraction) * physDt * 100.0;
-                    player->Fitness += std::max(0.0, positionFraction) * physDt * 100.0;
-                    player->Fitness -= std::abs(player->State.XDot) / static_cast<double>(CART_VEL_NORM) * physDt * 50.0;
-                    player->Fitness -= std::abs(player->State.ThetaDot) / static_cast<double>(ANGULAR_VEL_NORM) * physDt * 30.0;
+                    player->Fitness += std::max(0.0, positionFraction) * physDt * 50.0;
+                    player->Fitness -= std::abs(player->State.XDot) / static_cast<double>(CART_VEL_NORM) * physDt * 1.0;
+                    player->Fitness += std::max(0.0, angleDotFraction) * physDt * 200.0;
                 }
             }
         });
@@ -168,7 +184,7 @@ void CartPole::Step(float dt, bool strictMode)
 
     for (auto& player : m_Players)
     {
-        if (player.State.Theta <= g_PI / 4.0 and player.State.Theta >= -g_PI / 4.0)
+        if (player.State.Theta <= HELD_UP_ANGLE and player.State.Theta >= -HELD_UP_ANGLE)
             player.HeldUp = true;
         else
         {

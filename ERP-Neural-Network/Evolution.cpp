@@ -1,14 +1,5 @@
 #include "Evolution.h"
 
-Genome::Genome()
-{
-    Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), 0, false);
-    Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), 1, false);
-
-    Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), 6, false);
-    Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), 7, false);
-}
-
 static uint32_t CountInputConnections(const std::vector<Connection>& connections, int8_t neuron)
 {
     uint32_t connectionCount = 0;
@@ -77,13 +68,57 @@ static bool ValidConnection(const std::vector<Connection>& connections, int8_t i
     return true;
 }
 
+Genome::Genome()
+{
+    if (INPUT_NEURON_COUNT == 8)
+    {
+        Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromInputIdx(0), false);
+        Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromInputIdx(1), false);
+
+        Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromHiddenIdx(0), false);
+        Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromHiddenIdx(HIDDEN_NEURON_COUNT - 1), false);
+
+        Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(6), false);
+        Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(7), false);
+    }
+    else if (INPUT_NEURON_COUNT == 4)
+    {
+        Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromInputIdx(0), false);
+        Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromInputIdx(1), false);
+
+        Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromHiddenIdx(0), false);
+        Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromHiddenIdx(HIDDEN_NEURON_COUNT - 1), false);
+
+        Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(2), false);
+        Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(3), false);
+    }
+}
+
+size_t Genome::FindConnection(NeuronIdx inputNeuron, NeuronIdx outputNeuron) const
+{
+    for (size_t connectionIdx = 0; connectionIdx < Connections.size(); connectionIdx++)
+    {
+        const auto& connection = Connections[connectionIdx];
+        if (connection.InputNeuron == inputNeuron and connection.OutputNeuron == outputNeuron)
+        {
+            return connectionIdx;
+        }
+    }
+    // TODO: Handle error
+    Assert(false);
+    return 0;
+}
+
 void Genome::Print()
 {
     std::cout << "Connections, count: " << Connections.size() << ": \n";
 
     for (auto& connection : Connections)
     {
-        std::cout << "In: " << connection.InputNeuron << " Out: " << connection.OutputNeuron << " Weight:" << connection.Weight << " Sigma:" << connection.Sigma << '\n';
+        std::cout << "In: " << static_cast<uint32_t>(connection.InputNeuron) 
+            << " Out: " << static_cast<uint32_t>(connection.OutputNeuron)
+            << " Weight:" << connection.Weight
+            << " Sigma:" << connection.Sigma << '\n';
     }
     /*
     std::cout << "VLeaks: ";
@@ -99,22 +134,6 @@ void Genome::Mutate(std::mt19937& rng)
 {
     std::uniform_real_distribution<double> uniformDistribution(0.0, 1.0);
     std::normal_distribution<double> n01(0.0, 1.0);
-
-    const double n = static_cast<double>(std::max<size_t>(1, Connections.size()));
-    const double tauGlobal = 1.0 / std::sqrt(2.0 * n);
-    const double tauLocal = 1.0 / std::sqrt(2.0 * std::sqrt(n));
-
-    const double globalFactor = std::exp(tauGlobal * n01(rng));
-
-    for (auto& connection : Connections)
-    {
-        connection.Sigma *= globalFactor * std::exp(tauLocal * n01(rng));
-        connection.Sigma = std::clamp(connection.Sigma, 0.0, INITIAL_SIGMA);
-
-        std::normal_distribution<double> weightStep(0.0, connection.Sigma);
-        connection.Weight += weightStep(rng);
-        connection.Weight = std::clamp(connection.Weight, -MAX_WEIGHT, MAX_WEIGHT);
-    }
 
     /*
     std::normal_distribution<double> n01(0.0, 1.0);
@@ -139,33 +158,61 @@ void Genome::Mutate(std::mt19937& rng)
     }
     */
 
-    while ((uniformDistribution(rng) <= DELETE_CONNECTION_CHANCE) && (Connections.size() > 0))
+    if (MUTABLE_TOPOLOGY)
     {
-        std::uniform_int_distribution<uint32_t> distribution(0, Connections.size() - 1);
-        uint32_t deleteIndex = distribution(rng);
-        if (Connections[deleteIndex].Deletable)
+        while ((uniformDistribution(rng) <= DELETE_CONNECTION_CHANCE) && (Connections.size() > 0))
         {
-            Connections.erase(Connections.begin() + deleteIndex);
+            std::uniform_int_distribution<uint32_t> distribution(0, Connections.size() - 1);
+            const uint32_t deleteIdx = distribution(rng);
+            if (Connections[deleteIdx].Deletable)
+            {
+                const NeuronIdx inputNeuron = Connections[deleteIdx].InputNeuron;
+                const NeuronIdx outputNeuron = Connections[deleteIdx].OutputNeuron;
+                Connections.erase(Connections.begin() + deleteIdx);
+                const uint32_t deleteCompIdx = FindConnection(GetNeuronIdxComplement(inputNeuron), GetNeuronIdxComplement(outputNeuron));
+                Assert(Connections[deleteCompIdx].Deletable);
+                Connections.erase(Connections.begin() + deleteCompIdx);
+            }
+            Assert(Connections.size() % 2 == 0);
+        }
+
+        while (uniformDistribution(rng) <= NEW_CONNECTION_CHANCE)
+        {
+            std::uniform_int_distribution<uint32_t> inputDistribution(INPUT_NEURON_COUNT, TOTAL_NEURON_COUNT - 1);
+            std::uniform_int_distribution<uint32_t> outputDistribution(0, INPUT_NEURON_COUNT + HIDDEN_NEURON_COUNT - 1);
+            while (true)
+            {
+                uint32_t inputNeuron = inputDistribution(rng);
+                uint32_t outputNeuron = outputDistribution(rng);
+                if (inputNeuron != outputNeuron)
+                {
+                    if (ValidConnection(Connections, inputNeuron, outputNeuron) and ValidConnection(Connections, GetNeuronIdxComplement(inputNeuron), GetNeuronIdxComplement(outputNeuron)))
+                    {
+                        Connections.emplace_back(0.0, inputNeuron, outputNeuron, true);
+                        Connections.emplace_back(0.0, GetNeuronIdxComplement(inputNeuron), GetNeuronIdxComplement(outputNeuron), true);
+
+                        Assert(Connections.size() % 2 == 0);
+                    }
+                    break;
+                }
+            }
         }
     }
 
-    while (uniformDistribution(rng) <= NEW_CONNECTION_CHANCE)
+    const double n = static_cast<double>(std::max<size_t>(1, Connections.size()));
+    const double tauGlobal = 1.0 / std::sqrt(2.0 * n);
+    const double tauLocal = 1.0 / std::sqrt(2.0 * std::sqrt(n));
+
+    const double globalFactor = std::exp(tauGlobal * n01(rng));
+
+    for (auto& connection : Connections)
     {
-        std::uniform_int_distribution<uint32_t> inputDistribution(INPUT_NEURON_COUNT, TOTAL_NEURON_COUNT - 1);
-        std::uniform_int_distribution<uint32_t> outputDistribution(0, INPUT_NEURON_COUNT + HIDDEN_NEURON_COUNT - 1);
-        while (true)
-        {
-            uint32_t inputNeuron = inputDistribution(rng);
-            uint32_t outputNeuron = outputDistribution(rng);
-            if (inputNeuron != outputNeuron)
-            {
-                if (ValidConnection(Connections, inputNeuron, outputNeuron))
-                {
-                    Connections.emplace_back(0.0, inputNeuron, outputNeuron, true);
-                }
-                break;
-            }
-        }
+        connection.Sigma *= globalFactor * std::exp(tauLocal * n01(rng));
+        connection.Sigma = std::clamp(connection.Sigma, 0.0, INITIAL_NEW_WEIGHT_SIGMA);
+
+        std::normal_distribution<double> weightStep(0.0, connection.Sigma);
+        connection.Weight += weightStep(rng);
+        connection.Weight = std::clamp(connection.Weight, -MAX_WEIGHT, MAX_WEIGHT);
     }
 }
 
