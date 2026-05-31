@@ -89,29 +89,15 @@ static void StopSDL(Renderer renderer)
     SDL_Quit();
 }
 
-static bool SerialReadToBuffer(serialib& serial, std::string& buffer)
+static void SerialReadToBuffer(serialib& serial, std::string& buffer)
 {
-    bool jump = false;
     while (serial.available() > 0)
     {
-        char c;
-        serial.readChar(&c, 0);
-        if (c != '\r')
-        {
-            buffer += c;
-        }
-
-        if (c == '\n')
-        {
-            if (buffer == "Jump\n")
-            {
-                std::cout << buffer;
-                jump = true;
-            }
-            buffer.clear();
-        }
+        char readChar;
+        serial.readChar(&readChar, 0);
+        
+        buffer += readChar;
     }
-    return jump;
 }
 
 static double CalculateDeltaTime(Uint64 start, Uint64 end)
@@ -476,7 +462,7 @@ static void StartExp(const Renderer& renderer, Game& game, std::mt19937& rng)
     Player player = {};
 
     serialib serial;
-    serial.openDevice("COM3", 38400);
+    serial.openDevice("COM3", 115200);
 
     std::string rxBuffer;
 
@@ -539,6 +525,14 @@ static void StartExp(const Renderer& renderer, Game& game, std::mt19937& rng)
             if (serial.writeChar(static_cast<char>(spikedMask.to_ullong())) == -1)
             {
                 std::cout << "Error writing to serial buffer, is the port connected?\n";
+            }
+
+            SerialReadToBuffer(serial, rxBuffer);
+
+            for (uint32_t charIdx = 0; charIdx < rxBuffer.size(); charIdx++)
+            {
+                const uint32_t outputIdx = rxBuffer[charIdx];
+                game.Action(player.PlayerIndex, outputIdx);
             }
         }
 
