@@ -40,6 +40,7 @@ private:
     static constexpr float ANGLE_NORM = static_cast<float>(g_PI) / 4.0f;
     static constexpr float ANGULAR_VEL_NORM = 4.0f;
     static constexpr float POSITION_NORM = 4.0f;
+    static constexpr float REWARD_RADIUS = 1.0f;
     static constexpr float CART_VEL_NORM = 16.0f;
 
     static constexpr double HELD_UP_ANGLE = g_PI / 2.0;

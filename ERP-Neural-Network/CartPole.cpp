@@ -15,7 +15,7 @@ uint32_t CartPole::AddPlayer(bool display, std::mt19937& rng)
     const uint32_t playerIndex = static_cast<uint32_t>(m_Players.size());
     Player player;
     std::uniform_real_distribution<double> distribution(-1.0, 1.0);
-    player.State.Theta = g_PI / 4.0 * (distribution(rng));
+    player.State.Theta = g_PI / 16.0 * (distribution(rng));
     //player.State.X = POSITION_NORM * distribution(rng) * 0.95;
     player.Display = display;
 
@@ -160,7 +160,14 @@ void CartPole::Step(float dt, bool strictMode)
 
                 const double angleFraction = 1.0 - std::abs(player->State.Theta) / ANGLE_LIMIT;
                 const double angleDotFraction = 1.0 - std::abs(player->State.ThetaDot) / static_cast<double>(ANGULAR_VEL_NORM);
-                const double positionFraction = 1.0 - std::min(1.0, std::abs(player->State.X) / static_cast<double>(POSITION_NORM));
+                //const double positionFraction = 1.0 - std::min(1.0, std::abs(player->State.X) / static_cast<double>(REWARD_RADIUS));
+                const double velocityFraction = 1.0 - std::abs(player->State.XDot) / static_cast<double>(CART_VEL_NORM);
+
+                double positionFraction = 0.0;
+                if (std::abs(player->State.X) < REWARD_RADIUS)
+                    positionFraction = 1.0;
+
+
                 if (!strictMode)
                 {
                     player->Fitness += physDt;
@@ -172,9 +179,9 @@ void CartPole::Step(float dt, bool strictMode)
                 else
                 {
                     player->Fitness += physDt;
-                    player->Fitness += std::max(0.0, std::abs(angleFraction) * angleFraction) * physDt * 100.0;
-                    player->Fitness += std::max(0.0, positionFraction) * physDt * 50.0;
-                    player->Fitness -= std::abs(player->State.XDot) / static_cast<double>(CART_VEL_NORM) * physDt * 1.0;
+                    player->Fitness += std::max(0.0, std::abs(angleFraction) * angleFraction) * physDt * 50.0;
+                    player->Fitness += std::max(0.0, positionFraction) * physDt * 200.0;
+                    player->Fitness += std::max(0.0, velocityFraction) * physDt * 25.0;
                     player->Fitness += std::max(0.0, angleDotFraction) * physDt * 200.0;
                 }
             }

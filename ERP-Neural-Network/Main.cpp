@@ -23,7 +23,7 @@ static constexpr float METER_GAP = 8.0f;
 static constexpr double MAX_GAME_TIME = 30.0;
 
 static constexpr uint32_t STRICT_MODE_START = 1;
-static constexpr uint32_t ALPHA_START = 20;
+static constexpr uint32_t ALPHA_START = 50;
 static constexpr uint32_t ALPHA_DURATION = 10;
 static constexpr uint32_t MULTI_EVAL_START = 1;
 
@@ -140,6 +140,7 @@ struct GameState
     bool Render = true;
     bool Skip = false;
     bool Disable = false;
+    bool TrackingCamera = false;
     uint32_t Generation = 0;
 };
 
@@ -162,6 +163,8 @@ static void HandleGameInputs(GameState& gameState)
                 gameState.Skip = true;
             if (event.key.key == SDLK_L)
                 gameState.Disable = !gameState.Disable;
+            if (event.key.key == SDLK_T)
+                gameState.TrackingCamera = !gameState.TrackingCamera;
         }
     }
 }
@@ -555,7 +558,7 @@ int main(int argc, char* argv[])
     std::mt19937 rng(std::random_device{}());
     CartPole game(renderer.Renderer);
 
-#if 0
+#if 1
     Individual bestIndividual = StartTraining(renderer, game, rng);
     StartSim(renderer, game, rng, bestIndividual);
 #else

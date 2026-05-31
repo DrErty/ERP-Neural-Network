@@ -11,8 +11,8 @@ static constexpr double INITIAL_SIGMA = 1.0;
 static constexpr double INITIAL_NEW_WEIGHT_SIGMA = 0.1;
 
 static constexpr float CROSSOVER_CHANCE = 0.0f;
-static constexpr float NEW_CONNECTION_CHANCE = 0.1f;
-static constexpr float DELETE_CONNECTION_CHANCE = 0.05f;
+static constexpr float NEW_CONNECTION_CHANCE = 0.5f;
+static constexpr float DELETE_CONNECTION_CHANCE = 0.25f;
 
 static constexpr bool MUTABLE_TOPOLOGY = true;
 
@@ -29,59 +29,51 @@ static constexpr std::array<NeuronParams, HIDDEN_NEURON_COUNT + OUTPUT_NEURON_CO
         // Neuron 1
         {
             .VDrive = 3.0,
-            //.TauMem = 0.0330666,
-            .TauMem = 0.01,
+            .TauMem = 0.0330666,
             .TauSyn = 0.05,
             .VLeak = 0.482946559996318,
+            .VThreshold = 0.89
+        },
+        // Neuron 2
+        {
+            .VDrive = 3.0,
+            .TauMem = 0.0232725,
+            .TauSyn = 0.05,
+            .VLeak = 0.6280052380709833,
             .VThreshold = 0.89
         },
         // Neuron 3
         {
             .VDrive = 3.0,
-            //.TauMem = 0.0232725,
-            .TauMem = 0.01,
+            .TauMem = 0.02471013,
             .TauSyn = 0.05,
-            .VLeak = 0.6280052380709833,
+            .VLeak = 0.593853894281843,
             .VThreshold = 0.89
         },
         // Neuron 4
         {
             .VDrive = 3.0,
-            //.TauMem = 0.02471013,
-            .TauMem = 0.01,
+            .TauMem = 0.01524596,
             .TauSyn = 0.05,
-            .VLeak = 0.593853894281843,
+            .VLeak = 0.5725515709282208,
+            .VThreshold = 0.89
+        },
+        // Neuron 5
+        {
+            .VDrive = 3.0,
+            .TauMem = 0.0115239,
+            .TauSyn = 0.05,
+            .VLeak = 0.5532780402749436,
             .VThreshold = 0.89
         },
         // Neuron 6
         {
             .VDrive = 3.0,
-            //.TauMem = 0.01524596,
-            .TauMem = 0.01,
-            .TauSyn = 0.05,
-            .VLeak = 0.5725515709282208,
-            .VThreshold = 0.89
-        },
-    /*
-        // Neuron 7
-        {
-            .VDrive = 3.0,
-            //.TauMem = 0.0115239,
-            .TauMem = 0.01,
-            .TauSyn = 0.05,
-            .VLeak = 0.5532780402749436,
-            .VThreshold = 0.89
-        },
-        // Neuron 8
-        {
-            .VDrive = 3.0,
-            //.TauMem = 0.01565709,
-            .TauMem = 0.01,
+            .TauMem = 0.01565709,
             .TauSyn = 0.05,
             .VLeak = 0.5275799994039073,
             .VThreshold = 0.89
         },
-        */
     }
 };
 
@@ -104,6 +96,10 @@ struct Connection
 struct Genome
 {
     std::vector<Connection> Connections;
+
+    std::array<NeuronParams, HIDDEN_NEURON_COUNT + OUTPUT_NEURON_COUNT> Params = NEURON_PARAMS;
+
+    double Sigma = INITIAL_SIGMA;
 
     Genome();
 

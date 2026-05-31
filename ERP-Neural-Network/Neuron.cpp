@@ -1,5 +1,12 @@
 #include "Neuron.h"
 
+void NeuronParams::Print() const
+{
+    std::cout << "Params:\n";
+    std::cout << "TauMem: " << TauMem << '\n';
+    std::cout << "TauSyn: " << TauSyn << '\n';
+}
+
 void SpikeEncoder::SetValue(float value, float valueMin, float valueMax)
 {
     const float normalised = std::clamp((value - valueMin) / (valueMax - valueMin), 0.0f, 1.0f);

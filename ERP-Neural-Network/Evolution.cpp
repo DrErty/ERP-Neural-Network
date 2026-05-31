@@ -78,6 +78,12 @@ Genome::Genome()
         Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromHiddenIdx(0), false);
         Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromHiddenIdx(HIDDEN_NEURON_COUNT - 1), false);
 
+        Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(HIDDEN_NEURON_COUNT - 1), GetNeuronIdxFromInputIdx(2), true);
+        Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(HIDDEN_NEURON_COUNT - 1), GetNeuronIdxFromInputIdx(3), true);
+
+        Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(0), GetNeuronIdxFromInputIdx(4), true);
+        Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(0), GetNeuronIdxFromInputIdx(5), true);
+
         Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(6), false);
         Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(7), false);
     }
@@ -120,14 +126,11 @@ void Genome::Print()
             << " Weight:" << connection.Weight
             << " Sigma:" << connection.Sigma << '\n';
     }
-    /*
-    std::cout << "VLeaks: ";
-    for (double vLeak : VLeaks)
+
+    for (auto& param : Params)
     {
-        std::cout << vLeak << " ";
+        param.Print();
     }
-    std::cout << '\n';
-    */
 }
 
 void Genome::Mutate(std::mt19937& rng)
@@ -135,20 +138,20 @@ void Genome::Mutate(std::mt19937& rng)
     std::uniform_real_distribution<double> uniformDistribution(0.0, 1.0);
     std::normal_distribution<double> n01(0.0, 1.0);
 
-    /*
-    std::normal_distribution<double> n01(0.0, 1.0);
-    const double tau = 1.0 / std::sqrt(2.0 * std::max<size_t>(1, Connections.size()));
-    Sigma *= std::exp(tau * n01(rng));
-    Sigma = std::clamp(Sigma, 1e-3, INITIAL_SIGMA);
+    {
+        const double tau = 1.0 / std::sqrt(2.0 * std::max<size_t>(1, Connections.size()));
+        Sigma *= std::exp(tau * n01(rng));
+        Sigma = std::clamp(Sigma, 1e-3, INITIAL_SIGMA);
 
-    std::normal_distribution<double> weightStep(0.0, Sigma * 0.1);
-    for (auto& connection : Connections) {
-        connection.Weight += weightStep(rng);
-        connection.Weight = std::clamp(connection.Weight, -MAX_WEIGHT, MAX_WEIGHT);
+        std::normal_distribution<double> step(0.0, Sigma * 0.1);
+        for (auto& param : Params) {
+            param.TauMem += step(rng);
+            param.TauMem = std::clamp(param.TauMem, 0.01, 1.0);
+
+            param.TauSyn += step(rng);
+            param.TauSyn = std::clamp(param.TauSyn, 0.01, 1.0);
+        }
     }
-
-    std::uniform_real_distribution<double> uniformDistribution(0.0f, 1.0f);
-    */
 
     /*
     for (double& vLeak : VLeaks)
@@ -275,7 +278,7 @@ void ConstructNetwork(Individual& individual)
 
     for (uint32_t neuronIdx = INPUT_NEURON_COUNT; neuronIdx < TOTAL_NEURON_COUNT; neuronIdx++)
     {
-        network.SetParams(neuronIdx, NEURON_PARAMS[neuronIdx - INPUT_NEURON_COUNT]);
+        network.SetParams(neuronIdx, genome.Params[neuronIdx - INPUT_NEURON_COUNT]);
     }
 }
 
