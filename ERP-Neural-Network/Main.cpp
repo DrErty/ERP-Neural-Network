@@ -23,8 +23,8 @@ static constexpr float METER_GAP = 8.0f;
 static constexpr double MAX_GAME_TIME = 30.0;
 
 static constexpr uint32_t STRICT_MODE_START = 1;
-static constexpr uint32_t ALPHA_START = 50;
-static constexpr uint32_t ALPHA_DURATION = 10;
+static constexpr uint32_t ALPHA_START = 1;
+static constexpr uint32_t ALPHA_DURATION = 1;
 static constexpr uint32_t MULTI_EVAL_START = 1;
 
 struct Renderer
@@ -169,7 +169,7 @@ static void HandleGameInputs(GameState& gameState)
     }
 }
 
-static void UpdateInputs(const Game& game, Player& player)
+static void UpdateInputs(const CartPole& game, Player& player)
 {
     for (uint32_t inputIdx = 0; inputIdx < INPUT_NEURON_COUNT; inputIdx++)
     {
@@ -178,7 +178,7 @@ static void UpdateInputs(const Game& game, Player& player)
     }
 }
 
-static void UpdatePlayer(const Game& game, Player& player)
+static void UpdatePlayer(const CartPole& game, Player& player)
 {
     UpdateInputs(game, player);
 
@@ -197,7 +197,7 @@ static void UpdatePlayer(const Game& game, Player& player)
     }
 }
 
-static Individual StartTraining(const Renderer& renderer, Game& game, std::mt19937& rng)
+static Individual StartTraining(const Renderer& renderer, CartPole& game, std::mt19937& rng)
 {
     GameState gameState;
 
@@ -379,7 +379,7 @@ static Individual StartTraining(const Renderer& renderer, Game& game, std::mt199
         return {};
 }
 
-static void StartSim(const Renderer& renderer, Game& game, std::mt19937& rng, Individual& simIndividual)
+static void StartSim(const Renderer& renderer, CartPole& game, std::mt19937& rng, Individual& simIndividual)
 {
     GameState gameState;
 
@@ -456,7 +456,7 @@ static void StartSim(const Renderer& renderer, Game& game, std::mt19937& rng, In
     }
 }
 
-static void StartExp(const Renderer& renderer, Game& game, std::mt19937& rng)
+static void StartExp(const Renderer& renderer, CartPole& game, std::mt19937& rng)
 {
     GameState gameState;
 

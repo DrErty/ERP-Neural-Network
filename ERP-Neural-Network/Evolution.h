@@ -2,17 +2,18 @@
 
 #include "ERP.h"
 #include "Neuron.h"
-#include "Game.h"
 
-static constexpr uint32_t MAX_INDIVIDUALS = 1024;
-static constexpr uint32_t EVOLUTION_MU = 128;
+#include "CartPole.h"
+
+static constexpr uint32_t MAX_INDIVIDUALS = 2048;
+static constexpr uint32_t EVOLUTION_MU = 256;
 static constexpr uint32_t MAX_EVALUTIONS_PER_GENOME = 16;
 static constexpr double INITIAL_SIGMA = 1.0;
 static constexpr double INITIAL_NEW_WEIGHT_SIGMA = 0.1;
 
 static constexpr float CROSSOVER_CHANCE = 0.0f;
-static constexpr float NEW_CONNECTION_CHANCE = 0.5f;
-static constexpr float DELETE_CONNECTION_CHANCE = 0.25f;
+static constexpr float NEW_CONNECTION_CHANCE = 0.8f;
+static constexpr float DELETE_CONNECTION_CHANCE = 0.5f;
 
 static constexpr bool MUTABLE_TOPOLOGY = true;
 
@@ -58,6 +59,7 @@ static constexpr std::array<NeuronParams, HIDDEN_NEURON_COUNT + OUTPUT_NEURON_CO
             .VLeak = 0.5725515709282208,
             .VThreshold = 0.89
         },
+    /*
         // Neuron 5
         {
             .VDrive = 3.0,
@@ -74,6 +76,7 @@ static constexpr std::array<NeuronParams, HIDDEN_NEURON_COUNT + OUTPUT_NEURON_CO
             .VLeak = 0.5275799994039073,
             .VThreshold = 0.89
         },
+        */
     }
 };
 
@@ -124,7 +127,7 @@ struct Individual
     uint32_t EvalutationsPerGenome = 1;
     bool Alive = true;
 
-    double EvaluateFitness(const Game& game) const;
+    double EvaluateFitness(const CartPole& game) const;
 };
 
 Genome CrossoverGenome(const Genome& genomeA, const Genome& genomeB, std::mt19937& rng);

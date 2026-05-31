@@ -56,9 +56,6 @@
     <ClInclude Include="Evolution.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Game.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="CartPole.h">
       <Filter>Header Files</Filter>
     </ClInclude>

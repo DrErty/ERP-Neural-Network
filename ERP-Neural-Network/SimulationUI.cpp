@@ -1,6 +1,6 @@
 #include "SimulationUI.h"
 
-void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const std::vector<Individual>& individuals, Game& game, const std::vector<double>& history, double sigma, double frameTime)
+void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const std::vector<Individual>& individuals, CartPole& game, const std::vector<double>& history, double sigma, double frameTime)
 {
     const double bestEver = history.size() > 0 ? *std::max_element(history.begin(), history.end()) : 0.0;
 

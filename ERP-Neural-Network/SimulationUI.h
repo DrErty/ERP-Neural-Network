@@ -8,4 +8,6 @@
 #include "Evolution.h"
 #include "Drawer.h"
 
-void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const std::vector<Individual>& individuals, Game& game, const std::vector<double>& history, double sigma, double frameTime);
+#include "CartPole.h"
+
+void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const std::vector<Individual>& individuals, CartPole& game, const std::vector<double>& history, double sigma, double frameTime);

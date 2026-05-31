@@ -72,20 +72,38 @@ Genome::Genome()
 {
     if (INPUT_NEURON_COUNT == 8)
     {
-        Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromInputIdx(0), false);
-        Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromInputIdx(1), false);
+        if (true)
+        {
+            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromInputIdx(0), false);
+            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromInputIdx(1), false);
 
-        Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromHiddenIdx(0), false);
-        Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromHiddenIdx(HIDDEN_NEURON_COUNT - 1), false);
+            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromHiddenIdx(0), false);
+            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromHiddenIdx(HIDDEN_NEURON_COUNT - 1), false);
 
-        Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(HIDDEN_NEURON_COUNT - 1), GetNeuronIdxFromInputIdx(2), true);
-        Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(HIDDEN_NEURON_COUNT - 1), GetNeuronIdxFromInputIdx(3), true);
+            Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(HIDDEN_NEURON_COUNT - 1), GetNeuronIdxFromInputIdx(2), true);
+            Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(HIDDEN_NEURON_COUNT - 1), GetNeuronIdxFromInputIdx(3), true);
 
-        Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(0), GetNeuronIdxFromInputIdx(4), true);
-        Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(0), GetNeuronIdxFromInputIdx(5), true);
+            Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(0), GetNeuronIdxFromInputIdx(4), true);
+            Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(0), GetNeuronIdxFromInputIdx(5), true);
 
-        Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(6), false);
-        Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(7), false);
+            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(6), false);
+            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(7), false);
+        }
+        else
+        {
+            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromHiddenIdx(0), false);
+            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromHiddenIdx(HIDDEN_NEURON_COUNT - 1), false);
+            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromHiddenIdx(1), false);
+            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromHiddenIdx(HIDDEN_NEURON_COUNT - 2), false);
+            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromHiddenIdx(2), false);
+            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromHiddenIdx(HIDDEN_NEURON_COUNT - 3), false);
+
+            Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(0), GetNeuronIdxFromInputIdx(INPUT_NEURON_COUNT - 1), false);
+            Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(0), GetNeuronIdxFromInputIdx(INPUT_NEURON_COUNT - 2), false);
+
+            Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(HIDDEN_NEURON_COUNT - 1), GetNeuronIdxFromInputIdx(1), false);
+            Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(HIDDEN_NEURON_COUNT - 1), GetNeuronIdxFromInputIdx(0), false);
+        }
     }
     else if (INPUT_NEURON_COUNT == 4)
     {
@@ -219,7 +237,7 @@ void Genome::Mutate(std::mt19937& rng)
     }
 }
 
-double Individual::EvaluateFitness(const Game& game) const
+double Individual::EvaluateFitness(const CartPole& game) const
 {
     double totalGameFitness = 0.0;
     for (uint32_t playerIndex = 0; playerIndex < EvalutationsPerGenome; playerIndex++)

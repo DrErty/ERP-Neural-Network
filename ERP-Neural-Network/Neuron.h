@@ -11,7 +11,7 @@ static constexpr uint32_t MAX_INPUTS = 3;
 static constexpr uint32_t MAX_OUTPUTS = 3;
 
 static constexpr uint32_t INPUT_NEURON_COUNT = 8;
-static constexpr uint32_t HIDDEN_NEURON_COUNT = 4;
+static constexpr uint32_t HIDDEN_NEURON_COUNT = 8;
 static constexpr uint32_t OUTPUT_NEURON_COUNT = 2;
 static constexpr uint32_t TOTAL_NEURON_COUNT = INPUT_NEURON_COUNT + HIDDEN_NEURON_COUNT + OUTPUT_NEURON_COUNT;
 
@@ -19,11 +19,11 @@ using NeuronIdx = int8_t;
 
 struct NeuronParams
 {
-    double VDrive;
-    double TauMem;
-    double TauSyn;
-    double VLeak;
-    double VThreshold;
+    double VDrive = 3.0;
+    double TauMem = 0.02;
+    double TauSyn = 0.02;
+    double VLeak = 0.5;
+    double VThreshold = 1.0;
 
     void Print() const;
 };

@@ -1,32 +1,31 @@
 #pragma once
 
-#include "Game.h"
 #include "Drawer.h"
 #include "Neuron.h"
 
-class CartPole : public Game
+class CartPole
 {
 public:
     CartPole(SDL_Renderer* renderer, uint32_t gameHeight = Drawer::DEFAULT_WINDOW_HEIGHT, uint32_t gameWidth = Drawer::DEFAULT_WINDOW_WIDTH);
 
-    uint32_t AddPlayer(bool display, std::mt19937& rng) override;
+    uint32_t AddPlayer(bool display, std::mt19937& rng);
 
-    void Action(uint32_t playerIndex, uint32_t outputIndex) override;
-    float GetInput(uint32_t playerIndex, uint32_t inputIndex) const override;
+    void Action(uint32_t playerIndex, uint32_t outputIndex);
+    float GetInput(uint32_t playerIndex, uint32_t inputIndex) const;
 
-    bool PlayerAlive(uint32_t playerIndex) const override { return m_Players[playerIndex].Alive; }
-    double PlayerFitness(uint32_t playerIndex) const override { return m_Players[playerIndex].Fitness; }
-    uint32_t PlayerCount() const override { return static_cast<uint32_t>(m_Players.size()); }
-    uint32_t AliveCount() const override { return m_AliveCount; }
+    bool PlayerAlive(uint32_t playerIndex) const { return m_Players[playerIndex].Alive; }
+    double PlayerFitness(uint32_t playerIndex) const { return m_Players[playerIndex].Fitness; }
+    uint32_t PlayerCount() const { return static_cast<uint32_t>(m_Players.size()); }
+    uint32_t AliveCount() const { return m_AliveCount; }
 
-    void Step(float dt, bool strictMode) override;
-    void Render() override;
+    void Step(float dt, bool strictMode);
+    void Render();
 
-    bool IsDone() const override { return m_Done; }
-    double GetSimTime() const override { return m_SimTime; }
+    bool IsDone() const { return m_Done; }
+    double GetSimTime() const { return m_SimTime; }
 
-    void Reset() override;
-    void KillPlayer(uint32_t playerIndex) override;
+    void Reset();
+    void KillPlayer(uint32_t playerIndex);
 private:
     static constexpr uint32_t PHYS_STEPS = 4;
 

@@ -159,7 +159,6 @@
     <ClInclude Include="Drawer.h" />
     <ClInclude Include="ERP.h" />
     <ClInclude Include="Evolution.h" />
-    <ClInclude Include="Game.h" />
     <ClInclude Include="Neuron.h" />
     <ClInclude Include="serialib.h" />
     <ClInclude Include="SimulationUI.h" />
