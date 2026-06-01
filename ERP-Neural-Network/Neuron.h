@@ -10,9 +10,9 @@ static constexpr double MAX_WEIGHT = 1.0;
 static constexpr uint32_t MAX_INPUTS = 3;
 static constexpr uint32_t MAX_OUTPUTS = 3;
 
-static constexpr uint32_t INPUT_NEURON_COUNT = 8;
+static constexpr uint32_t INPUT_NEURON_COUNT = 3;
 static constexpr uint32_t HIDDEN_NEURON_COUNT = 0;
-static constexpr uint32_t OUTPUT_NEURON_COUNT = 2;
+static constexpr uint32_t OUTPUT_NEURON_COUNT = 1;
 static constexpr uint32_t TOTAL_NEURON_COUNT = INPUT_NEURON_COUNT + HIDDEN_NEURON_COUNT + OUTPUT_NEURON_COUNT;
 
 using NeuronIdx = int8_t;
@@ -31,10 +31,10 @@ struct NeuronParams
 class SpikeEncoder
 {
 public:
-    SpikeEncoder(float maxRate = 2.0 / REFRAC_TIME, float minRate = 0.0f)
+    SpikeEncoder(float maxRate = 45.0f, float minRate = 35.0f)
         : m_MaxRate(maxRate), m_MinRate(minRate), m_CurrentRate(0.0f), m_Phase(0.0f) {}
 
-    void SetValue(float value, float valueMin, float valueMax);
+    void SetValue(float value);
 
     uint32_t Update(float dt);
 
@@ -81,8 +81,9 @@ struct NeuralNetwork
     std::array<double, TOTAL_NEURON_COUNT> VMem = {};
     std::array<double, TOTAL_NEURON_COUNT> RefracTime = {};
     std::array<double, TOTAL_NEURON_COUNT> DecayRates = {};
-    std::array<bool, TOTAL_NEURON_COUNT> PendingTrigger = {};
     std::array<bool, TOTAL_NEURON_COUNT> InactiveNeurons = {};
+    std::array<float, OUTPUT_NEURON_COUNT> Frequencies = {};
+    std::array<float, OUTPUT_NEURON_COUNT> LastTrigger = {};
 
     void TriggerConnected(int8_t neuronIndex, uint32_t count, double duration = PULSE_TIME);
     void UpdateNetwork(double dt);

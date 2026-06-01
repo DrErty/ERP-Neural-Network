@@ -76,7 +76,6 @@ static constexpr std::array<NeuronParams, HIDDEN_NEURON_COUNT + OUTPUT_NEURON_CO
             .VLeak = 0.5275799994039073,
             .VThreshold = 0.89
         },
-        */
         // Neuron 7
         {
             .VDrive = 3.0,
@@ -91,6 +90,14 @@ static constexpr std::array<NeuronParams, HIDDEN_NEURON_COUNT + OUTPUT_NEURON_CO
             .TauMem = 0.0407612,
             .TauSyn = 0.08151,
             .VLeak = 0.6375,
+            .VThreshold = 1.244
+        },
+        */
+        {
+            .VDrive = 3.0,
+            .TauMem = 0.5,
+            .TauSyn = 0.01,
+            .VLeak = 0.0,
             .VThreshold = 1.244
         },
     }

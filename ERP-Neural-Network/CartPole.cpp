@@ -16,6 +16,7 @@ uint32_t CartPole::AddPlayer(bool display, std::mt19937& rng)
     Player player;
     std::uniform_real_distribution<double> distribution(-1.0, 1.0);
     player.State.Theta = g_PI / 16.0 * (distribution(rng));
+    //player.State.Theta = 0.0;
     //player.State.X = POSITION_NORM * distribution(rng) * 0.95;
     player.Display = display;
 
@@ -30,7 +31,7 @@ uint32_t CartPole::AddPlayer(bool display, std::mt19937& rng)
     return playerIndex;
 }
 
-void CartPole::Action(uint32_t playerIndex, uint32_t outputIndex)
+void CartPole::Action(uint32_t playerIndex, double spikeFrequency)
 {
     if (playerIndex >= m_Players.size())
     {
@@ -39,23 +40,11 @@ void CartPole::Action(uint32_t playerIndex, uint32_t outputIndex)
     }
 
     Assert(playerIndex < m_Players.size());
-    Assert(outputIndex < OUTPUT_NEURON_COUNT);
 
     Player& player = m_Players[playerIndex];
     if (!player.Alive) return;
-
-    if (outputIndex == 0)
-    {
-        //if (player.PendingForce > 0.0)
-        //    player.PendingForce = 0.0;
-        player.PendingForce -= static_cast<float>(FORCE_MAGNITUDE);
-    }
-    if (outputIndex == 1)
-    {
-        //if (player.PendingForce < 0.0)
-        //    player.PendingForce = 0.0;
-        player.PendingForce += static_cast<float>(FORCE_MAGNITUDE);
-    }
+    
+    player.PendingForce = static_cast<float>(spikeFrequency - 20.0) * 2.5;
 }
 
 float CartPole::GetInput(uint32_t playerIndex, uint32_t inputIndex) const
@@ -64,6 +53,12 @@ float CartPole::GetInput(uint32_t playerIndex, uint32_t inputIndex) const
 
     const PhysicsState& state = m_Players[playerIndex].State;
 
+    if (INPUT_NEURON_COUNT == 3)
+    {
+        if (inputIndex == 0) return static_cast<float>(state.Theta) / ANGLE_NORM;
+        if (inputIndex == 1) return static_cast<float>(state.ThetaDot) / ANGULAR_VEL_NORM;
+        if (inputIndex == 2) return static_cast<float>(state.XDot) / CART_VEL_NORM;
+    }
     if (INPUT_NEURON_COUNT == 8)
     {
         if (inputIndex == 0) return std::max(0.0f, static_cast<float>(state.Theta) / ANGLE_NORM);
@@ -160,9 +155,11 @@ void CartPole::Step(float dt, bool strictMode)
             for (uint32_t substep = 0; substep < PHYS_STEPS; ++substep)
             {
                 const double appliedForce = static_cast<double>(player->PendingForce);
-                player->PendingForce *= std::exp(-physDt / MOTOR_RESET_TIME);
+                //player->PendingForce *= std::exp(-physDt / MOTOR_RESET_TIME);
 
-                player->State = StepPhysics(player->State, appliedForce, physDt);
+                constexpr double timeSetting = 0.5;
+                if (m_SimTime > timeSetting)
+                    player->State = StepPhysics(player->State, appliedForce, physDt);
 
                 const double angleFraction = 1.0 - std::abs(player->State.Theta) / ANGLE_LIMIT;
                 const double angleDotFraction = 1.0 - std::abs(player->State.ThetaDot) / static_cast<double>(ANGULAR_VEL_NORM);
@@ -173,16 +170,7 @@ void CartPole::Step(float dt, bool strictMode)
                 if (std::abs(player->State.X) < REWARD_RADIUS)
                     positionFraction = 1.0;
 
-
-                if (!strictMode)
-                {
-                    player->Fitness += physDt;
-                    player->Fitness += std::max(0.0, std::abs(angleFraction) * angleFraction) * physDt * 100.0;
-                    player->Fitness += std::max(0.0, positionFraction) * physDt * 1.0;
-                    player->Fitness -= std::abs(player->State.XDot) / static_cast<double>(CART_VEL_NORM) * physDt * 1.0;
-                    player->Fitness -= std::abs(player->State.ThetaDot) / static_cast<double>(ANGULAR_VEL_NORM) * physDt * 3.0;
-                }
-                else
+                if (m_SimTime > timeSetting)
                 {
                     player->Fitness += physDt;
                     player->Fitness += std::max(0.0, std::abs(angleFraction) * angleFraction) * physDt * 50.0;
@@ -216,8 +204,8 @@ void CartPole::Step(float dt, bool strictMode)
 
         if (IsTerminal(player.State) and player.Alive)
         {
-            //player.Alive = false;
-            //--m_AliveCount;
+            player.Alive = false;
+            --m_AliveCount;
         }
     }
 

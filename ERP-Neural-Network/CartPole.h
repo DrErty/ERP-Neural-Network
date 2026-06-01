@@ -10,7 +10,7 @@ public:
 
     uint32_t AddPlayer(bool display, std::mt19937& rng);
 
-    void Action(uint32_t playerIndex, uint32_t outputIndex);
+    void Action(uint32_t playerIndex, double spikeFrequency);
     float GetInput(uint32_t playerIndex, uint32_t inputIndex) const;
 
     bool PlayerAlive(uint32_t playerIndex) const { return m_Players[playerIndex].Alive; }
@@ -44,11 +44,9 @@ private:
 
     static constexpr double HELD_UP_ANGLE = g_PI / 2.0;
 
-    static constexpr double MOTOR_RESET_TIME = 0.05;
-
     static constexpr double KILL_TIME = 10.0;
 
-    static constexpr bool MOVING_CAMERA = true;
+    static constexpr bool MOVING_CAMERA = false;
 
     struct PhysicsState
     {

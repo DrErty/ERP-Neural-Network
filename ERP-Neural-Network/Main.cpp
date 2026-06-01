@@ -20,12 +20,12 @@ static constexpr float METER_WIDTH = NEURON_SIZE;
 static constexpr float METER_HEIGHT = 16.0f;
 static constexpr float METER_GAP = 8.0f;
 
-static constexpr double MAX_GAME_TIME = 30.0;
+static constexpr double MAX_GAME_TIME = 60.0;
 
 static constexpr uint32_t STRICT_MODE_START = 1;
-static constexpr uint32_t ALPHA_START = 50;
+static constexpr uint32_t ALPHA_START = 5000;
 static constexpr uint32_t ALPHA_DURATION = 10;
-static constexpr uint32_t MULTI_EVAL_START = 1;
+static constexpr uint32_t MULTI_EVAL_START = ALPHA_START;
 
 struct Renderer
 {
@@ -174,7 +174,7 @@ static void UpdateInputs(const CartPole& game, Player& player)
     for (uint32_t inputIdx = 0; inputIdx < INPUT_NEURON_COUNT; inputIdx++)
     {
         float input = game.GetInput(player.PlayerIndex, inputIdx);
-        player.InputState[inputIdx].SetValue(input, 0.0f, 1.0f);
+        player.InputState[inputIdx].SetValue(input);
     }
 }
 
@@ -186,7 +186,7 @@ static void UpdatePlayer(const CartPole& game, Player& player)
     {
         const uint32_t spikeCount = player.InputState[inputIndex].Update(SIM_DT);
         if (spikeCount > 0)
-            player.Network.TriggerConnected(inputIndex, spikeCount, PULSE_TIME / 2.0);
+            player.Network.TriggerConnected(inputIndex, spikeCount);
     }
 
     for (uint32_t i = 0; i < NEURON_SUBSTEPS; i++)
@@ -351,14 +351,10 @@ static Individual StartTraining(const Renderer& renderer, CartPole& game, std::m
                 Player& player = individual.Players2[i];
                 for (uint32_t neuronIndex = 0; neuronIndex < player.Network.Neurons.size(); neuronIndex++)
                 {
-                    if (!player.Network.PendingTrigger[neuronIndex]) continue;
-                    player.Network.PendingTrigger[neuronIndex] = false;
-
                     const int32_t outputIndex = neuronIndex - INPUT_NEURON_COUNT - HIDDEN_NEURON_COUNT;
-                    if (outputIndex >= 0 && outputIndex < OUTPUT_NEURON_COUNT)
+                    if (outputIndex >= 0 and outputIndex < OUTPUT_NEURON_COUNT)
                     {
-                        if (!gameState.Disable)
-                            game.Action(player.PlayerIndex, outputIndex);
+                        game.Action(player.PlayerIndex, player.Network.Frequencies[outputIndex]);
                     }
                 }
             }
@@ -430,6 +426,7 @@ static void StartSim(const Renderer& renderer, CartPole& game, std::mt19937& rng
         {
             UpdatePlayer(game, player);
 
+            /*
             for (uint32_t neuronIndex = 0; neuronIndex < player.Network.Neurons.size(); neuronIndex++)
             {
                 if (!player.Network.PendingTrigger[neuronIndex]) continue;
@@ -442,6 +439,7 @@ static void StartSim(const Renderer& renderer, CartPole& game, std::mt19937& rng
                         game.Action(player.PlayerIndex, outputIndex);
                 }
             }
+            */
         }
 
         if (gameState.Render)
@@ -582,7 +580,7 @@ int main(int argc, char* argv[])
     StartSim(renderer, game, rng, bestIndividual);
 #endif
 
-#if 0
+#if 1
     Individual bestIndividual = StartTraining(renderer, game, rng);
     StartSim(renderer, game, rng, bestIndividual);
 #else 

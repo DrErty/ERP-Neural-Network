@@ -261,6 +261,18 @@ void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const std::vector<
             Drawer::SetColor(renderer, { 200, 220, 255, 160 });
             Drawer::DrawRect(renderer, neuronScreenX[neuronIndex] - neuronRadius, neuronScreenY[neuronIndex] - neuronRadius, neuronRadius * 2.0f, neuronRadius * 2.0f);
 
+            if (neuronIndex >= INPUT_NEURON_COUNT + HIDDEN_NEURON_COUNT)
+            {
+                float frequency = baseNetwork.Frequencies[neuronIndex - INPUT_NEURON_COUNT - HIDDEN_NEURON_COUNT];
+                std::string freq = std::to_string(frequency);
+                Drawer::DrawTextSlow(renderer, freq,
+                    neuronScreenX[neuronIndex] - neuronRadius * 2,
+                    neuronScreenY[neuronIndex],
+                    { 255, 255, 255, 255 },
+                    Drawer::g_FontSmall, true
+                );
+            }
+
             const float vmemBarWidth = neuronRadius * 2.0f;
             const float vmemBarHeight = 3.0f;
             const float vmemBarTop = neuronScreenY[neuronIndex] + neuronRadius + 3.0f;

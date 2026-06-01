@@ -70,6 +70,12 @@ static bool ValidConnection(const std::vector<Connection>& connections, int8_t i
 
 Genome::Genome()
 {
+    if (INPUT_NEURON_COUNT == 3)
+    {
+        Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(0), false);
+        Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(1), false);
+        Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(2), false);
+    }
     if (INPUT_NEURON_COUNT == 8)
     {
         if (true)
@@ -161,19 +167,19 @@ void Genome::Mutate(std::mt19937& rng)
     std::uniform_real_distribution<double> uniformDistribution(0.0, 1.0);
     std::normal_distribution<double> n01(0.0, 1.0);
 
-    if (false)
+    if (true)
     {
         const double tau = 1.0 / std::sqrt(2.0 * std::max<size_t>(1, Connections.size()));
         Sigma *= std::exp(tau * n01(rng));
         Sigma = std::clamp(Sigma, 1e-3, INITIAL_SIGMA);
 
-        std::normal_distribution<double> step(0.0, Sigma * 0.1);
+        std::normal_distribution<double> step(0.0, Sigma);
         for (auto& param : Params) {
             param.TauMem += step(rng);
-            param.TauMem = std::clamp(param.TauMem, 0.01, 1.0);
+            param.TauMem = std::clamp(param.TauMem, 0.01, 2.0);
 
             param.TauSyn += step(rng);
-            param.TauSyn = std::clamp(param.TauSyn, 0.01, 1.0);
+            param.TauSyn = std::clamp(param.TauSyn, 0.01, 2.0);
         }
     }
 
@@ -196,9 +202,9 @@ void Genome::Mutate(std::mt19937& rng)
                 const NeuronIdx inputNeuron = Connections[deleteIdx].InputNeuron;
                 const NeuronIdx outputNeuron = Connections[deleteIdx].OutputNeuron;
                 Connections.erase(Connections.begin() + deleteIdx);
-                const uint32_t deleteCompIdx = FindConnection(GetNeuronIdxComplement(inputNeuron), GetNeuronIdxComplement(outputNeuron));
-                Assert(Connections[deleteCompIdx].Deletable);
-                Connections.erase(Connections.begin() + deleteCompIdx);
+                //const uint32_t deleteCompIdx = FindConnection(GetNeuronIdxComplement(inputNeuron), GetNeuronIdxComplement(outputNeuron));
+                //Assert(Connections[deleteCompIdx].Deletable);
+                //Connections.erase(Connections.begin() + deleteCompIdx);
             }
             Assert(Connections.size() % 2 == 0);
         }
@@ -216,9 +222,9 @@ void Genome::Mutate(std::mt19937& rng)
                     if (ValidConnection(Connections, inputNeuron, outputNeuron) and ValidConnection(Connections, GetNeuronIdxComplement(inputNeuron), GetNeuronIdxComplement(outputNeuron)))
                     {
                         Connections.emplace_back(0.0, inputNeuron, outputNeuron, true);
-                        Connections.emplace_back(0.0, GetNeuronIdxComplement(inputNeuron), GetNeuronIdxComplement(outputNeuron), true);
+                        //Connections.emplace_back(0.0, GetNeuronIdxComplement(inputNeuron), GetNeuronIdxComplement(outputNeuron), true);
 
-                        Assert(Connections.size() % 2 == 0);
+                        //Assert(Connections.size() % 2 == 0);
                     }
                     break;
                 }
