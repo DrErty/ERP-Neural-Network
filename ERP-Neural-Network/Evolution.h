@@ -15,7 +15,7 @@ static constexpr float CROSSOVER_CHANCE = 0.0f;
 static constexpr float NEW_CONNECTION_CHANCE = 0.8f;
 static constexpr float DELETE_CONNECTION_CHANCE = 0.5f;
 
-static constexpr bool MUTABLE_TOPOLOGY = true;
+static constexpr bool MUTABLE_TOPOLOGY = false;
 
 struct NoisyEvalConfig
 {
@@ -27,6 +27,7 @@ struct NoisyEvalConfig
 
 static constexpr std::array<NeuronParams, HIDDEN_NEURON_COUNT + OUTPUT_NEURON_COUNT> NEURON_PARAMS = {
     {
+        /*
         // Neuron 1
         {
             .VDrive = 3.0,
@@ -59,7 +60,6 @@ static constexpr std::array<NeuronParams, HIDDEN_NEURON_COUNT + OUTPUT_NEURON_CO
             .VLeak = 0.5725515709282208,
             .VThreshold = 0.89
         },
-    /*
         // Neuron 5
         {
             .VDrive = 3.0,
@@ -77,6 +77,22 @@ static constexpr std::array<NeuronParams, HIDDEN_NEURON_COUNT + OUTPUT_NEURON_CO
             .VThreshold = 0.89
         },
         */
+        // Neuron 7
+        {
+            .VDrive = 3.0,
+            .TauMem = 0.04,
+            .TauSyn = 0.05,
+            .VLeak = 0.482946559996318,
+            .VThreshold = 0.89
+        },
+        // Neuron 8
+        {
+            .VDrive = 3.0,
+            .TauMem = 0.0407612,
+            .TauSyn = 0.08151,
+            .VLeak = 0.6375,
+            .VThreshold = 1.244
+        },
     }
 };
 

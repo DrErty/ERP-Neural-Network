@@ -77,17 +77,22 @@ Genome::Genome()
             Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromInputIdx(0), false);
             Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromInputIdx(1), false);
 
-            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromHiddenIdx(0), false);
-            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromHiddenIdx(HIDDEN_NEURON_COUNT - 1), false);
+            //Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(0), false);
+            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(1), false);
 
-            Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(HIDDEN_NEURON_COUNT - 1), GetNeuronIdxFromInputIdx(2), true);
-            Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(HIDDEN_NEURON_COUNT - 1), GetNeuronIdxFromInputIdx(3), true);
+            //Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromHiddenIdx(0), false);
+            //Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromHiddenIdx(HIDDEN_NEURON_COUNT - 1), false);
 
-            Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(0), GetNeuronIdxFromInputIdx(4), true);
-            Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(0), GetNeuronIdxFromInputIdx(5), true);
+            //Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(HIDDEN_NEURON_COUNT - 1), GetNeuronIdxFromInputIdx(2), true);
+            //Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(HIDDEN_NEURON_COUNT - 1), GetNeuronIdxFromInputIdx(3), true);
+
+            //Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(0), GetNeuronIdxFromInputIdx(4), true);
+            //Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(0), GetNeuronIdxFromInputIdx(5), true);
 
             Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(6), false);
             Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(7), false);
+
+            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromInputIdx(6), false);
         }
         else
         {
@@ -156,6 +161,7 @@ void Genome::Mutate(std::mt19937& rng)
     std::uniform_real_distribution<double> uniformDistribution(0.0, 1.0);
     std::normal_distribution<double> n01(0.0, 1.0);
 
+    if (false)
     {
         const double tau = 1.0 / std::sqrt(2.0 * std::max<size_t>(1, Connections.size()));
         Sigma *= std::exp(tau * n01(rng));

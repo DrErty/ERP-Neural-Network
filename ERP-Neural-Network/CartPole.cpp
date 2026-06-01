@@ -32,6 +32,12 @@ uint32_t CartPole::AddPlayer(bool display, std::mt19937& rng)
 
 void CartPole::Action(uint32_t playerIndex, uint32_t outputIndex)
 {
+    if (playerIndex >= m_Players.size())
+    {
+        std::cout << "Ignoring input\n";
+        return;
+    }
+
     Assert(playerIndex < m_Players.size());
     Assert(outputIndex < OUTPUT_NEURON_COUNT);
 

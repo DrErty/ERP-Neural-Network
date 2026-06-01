@@ -280,7 +280,7 @@ static Individual StartTraining(const Renderer& renderer, CartPole& game, std::m
                     for (uint32_t i = 0; i < individual.EvalutationsPerGenome; i++)
                     {
                         Player& player = individual.Players2[i];
-                        const uint32_t playerIndex = game.AddPlayer(true, playerRng);
+                        const uint32_t playerIndex = game.AddPlayer(individualIndex == 0, playerRng);
                         player.PlayerIndex = playerIndex;
                     }
                 }
@@ -471,8 +471,11 @@ static void StartExp(const Renderer& renderer, CartPole& game, std::mt19937& rng
 
     std::mt19937 playerRng(0);
 
+    double timeStart = 0.0;
     auto resetRound = [&]()
         {
+            timeStart = 0.0;
+
             game.Reset();
 
             player.PlayerIndex = game.AddPlayer(true, playerRng);
@@ -491,7 +494,11 @@ static void StartExp(const Renderer& renderer, CartPole& game, std::mt19937& rng
             frame = FrameStart(renderer);
 
         HandleGameInputs(gameState);
-        game.Step(SIM_DT, false);
+
+        timeStart += SIM_DT;
+
+        if (timeStart > 1.0)
+            game.Step(SIM_DT, false);
 
         if (game.IsDone() || gameState.Skip || game.GetSimTime() > MAX_GAME_TIME)
         {
@@ -531,12 +538,16 @@ static void StartExp(const Renderer& renderer, CartPole& game, std::mt19937& rng
             }
 
             SerialReadToBuffer(serial, rxBuffer);
+            if (timeStart > 1.0)
+                for (uint32_t charIdx = 0; charIdx < rxBuffer.size(); charIdx++)
+                {
+                    const uint32_t outputIdx = rxBuffer[charIdx];
+                    std::cout << "Trigger: " << outputIdx << '\n';
+                    //if (outputIdx == 1)
+                    game.Action(player.PlayerIndex, outputIdx - 23);
+                }
 
-            for (uint32_t charIdx = 0; charIdx < rxBuffer.size(); charIdx++)
-            {
-                const uint32_t outputIdx = rxBuffer[charIdx];
-                game.Action(player.PlayerIndex, outputIdx);
-            }
+            rxBuffer.clear();
         }
 
         if (gameState.Render)
@@ -558,10 +569,23 @@ int main(int argc, char* argv[])
     std::mt19937 rng(std::random_device{}());
     CartPole game(renderer.Renderer);
 
-#if 1
+#if 0
+    Individual bestIndividual = {};
+    auto& connections = bestIndividual.Genome.Connections;
+    connections.clear();
+    connections.emplace_back(0.9, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromInputIdx(0), false);
+    connections.emplace_back(0.9, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromInputIdx(1), false);
+
+    connections.emplace_back(0.9, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(6), false);
+    connections.emplace_back(0.9, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(7), false);
+
+    StartSim(renderer, game, rng, bestIndividual);
+#endif
+
+#if 0
     Individual bestIndividual = StartTraining(renderer, game, rng);
     StartSim(renderer, game, rng, bestIndividual);
-#else
+#else 
     StartExp(renderer, game, rng);
 #endif
 
