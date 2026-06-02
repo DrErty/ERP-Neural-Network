@@ -9,8 +9,8 @@ namespace Drawer
 {
 	static constexpr uint32_t SIDEBAR_WIDTH = 380;
 
-	static constexpr uint32_t DEFAULT_WINDOW_WIDTH = 1920 / 2;
-	static constexpr uint32_t DEFAULT_WINDOW_HEIGHT = 1080 / 2;
+	static constexpr uint32_t DEFAULT_WINDOW_WIDTH = 1920;
+	static constexpr uint32_t DEFAULT_WINDOW_HEIGHT = 1080;
 
 	inline TTF_Font* g_FontSmall = nullptr;
 	inline TTF_Font* g_FontMedium = nullptr;

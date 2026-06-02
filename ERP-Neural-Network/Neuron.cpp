@@ -5,13 +5,23 @@ void NeuronParams::Print() const
     std::cout << "Params: " << "TauMem: " << TauMem << ", TauSyn: " << TauSyn << '\n';
 }
 
-void SpikeEncoder::SetValue(float value)
+void SpikeEncoder::SetValue(double value)
 {
-    const float normalised = std::clamp(value, -1.0f, 1.0f);
-    m_CurrentRate = m_MinRate + (normalised + 1.0f) / 2.0f * (m_MaxRate - m_MinRate);
+    const double normalised = std::clamp(value, -1.0, 1.0);
+    m_CurrentRate = m_MinRate + (normalised + 1.0) / 2.0 * (m_MaxRate - m_MinRate);
 }
 
-uint32_t SpikeEncoder::Update(float dt)
+void SpikeEncoder::SetMaxRate(double maxRate)
+{
+    m_MaxRate = maxRate;
+}
+
+void SpikeEncoder::SetMinRate(double minRate)
+{
+    m_MinRate = minRate;
+}
+
+uint32_t SpikeEncoder::Update(double dt)
 {
     if (m_CurrentRate <= 0.0f) return 0;
     m_Phase += m_CurrentRate * dt;
@@ -85,6 +95,17 @@ bool ConnectNeurons(NeuralNetwork& network, int8_t inputNeuron, int8_t outputNeu
     return true;
 }
 
+double NeuralNetwork::GetFrequency(NeuronIdx outputIdx) const
+{
+    uint32_t count = 0;
+    for (auto& trigger : RecentTriggers)
+    {
+        if (trigger.OutputIdx == outputIdx)
+            count++;
+    }
+    return count / FREQUENCY_TIME_WINDOW;
+}
+
 void NeuralNetwork::TriggerConnected(int8_t neuronIndex, uint32_t count, double duration)
 {
     Neuron& neuron = Neurons[neuronIndex];
@@ -103,6 +124,22 @@ void NeuralNetwork::TriggerConnected(int8_t neuronIndex, uint32_t count, double 
 
 void NeuralNetwork::UpdateNetwork(double dt)
 {
+    // TODO: uses fact that triggers are ordered.
+    uint32_t removeCount = 0;
+    for (auto& trigger : RecentTriggers)
+    {
+        trigger.Time += dt;
+        if (trigger.Time > FREQUENCY_TIME_WINDOW)
+        {
+            removeCount += 1;
+        }
+    }
+    while (removeCount > 0)
+    {
+        RecentTriggers.erase(RecentTriggers.begin());
+        removeCount--;
+    }
+
     for (uint32_t neuronIdx = 0; neuronIdx < TOTAL_NEURON_COUNT; neuronIdx++)
     {
         if (InactiveNeurons[neuronIdx]) continue;
@@ -129,11 +166,6 @@ void NeuralNetwork::UpdateNetwork(double dt)
             }
         }
 
-        if (neuronIdx >= INPUT_NEURON_COUNT + HIDDEN_NEURON_COUNT)
-        {
-            LastTrigger[neuronIdx - INPUT_NEURON_COUNT - HIDDEN_NEURON_COUNT] += dt;
-        }
-
         // Check if should trigger
         if (VMem[neuronIdx] >= Params[neuronIdx].VThreshold)
         {
@@ -143,8 +175,8 @@ void NeuralNetwork::UpdateNetwork(double dt)
 
             if (neuronIdx >= INPUT_NEURON_COUNT + HIDDEN_NEURON_COUNT)
             {
-                Frequencies[neuronIdx - INPUT_NEURON_COUNT - HIDDEN_NEURON_COUNT] = 1.0 / LastTrigger[neuronIdx - INPUT_NEURON_COUNT - HIDDEN_NEURON_COUNT];
-                LastTrigger[neuronIdx - INPUT_NEURON_COUNT - HIDDEN_NEURON_COUNT] = 0.0;
+                NeuronIdx outputIdx = neuronIdx - INPUT_NEURON_COUNT - HIDDEN_NEURON_COUNT;
+                RecentTriggers.emplace_back(0.0, outputIdx);
             }
         }
     }

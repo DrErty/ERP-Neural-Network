@@ -5,7 +5,7 @@
 static constexpr double REFRAC_TIME = 13.0 / 1000.0; // Seconds
 static constexpr double PULSE_TIME = 12.0 / 1000.0;
 
-static constexpr double MAX_WEIGHT = 1.0;
+static constexpr double MAX_WEIGHT = 10.0;
 
 static constexpr uint32_t MAX_INPUTS = 3;
 static constexpr uint32_t MAX_OUTPUTS = 3;
@@ -31,21 +31,23 @@ struct NeuronParams
 class SpikeEncoder
 {
 public:
-    SpikeEncoder(float maxRate = 45.0f, float minRate = 35.0f)
+    SpikeEncoder(double maxRate = MAX_INPUT_RATE, double minRate = MIN_INPUT_RATE)
         : m_MaxRate(maxRate), m_MinRate(minRate), m_CurrentRate(0.0f), m_Phase(0.0f) {}
 
-    void SetValue(float value);
+    void SetValue(double value);
+    void SetMaxRate(double maxRate);
+    void SetMinRate(double minRate);
 
-    uint32_t Update(float dt);
+    uint32_t Update(double dt);
 
     void Reset() { m_Phase = 0.0f; }
-    float CurrentRate() const { return m_CurrentRate; }
-    float GetPhase() const { return m_Phase; }
+    double CurrentRate() const { return m_CurrentRate; }
+    double GetPhase() const { return m_Phase; }
 private:
-    float m_MaxRate;
-    float m_MinRate;
-    float m_CurrentRate;
-    float m_Phase;
+    double m_MaxRate;
+    double m_MinRate;
+    double m_CurrentRate;
+    double m_Phase;
 };
 
 NeuronIdx GetNeuronIdxComplement(NeuronIdx neuronIdx);
@@ -73,6 +75,8 @@ struct Neuron
 
 struct NeuralNetwork
 {
+    static constexpr double FREQUENCY_TIME_WINDOW = 0.5;
+
     std::array<Neuron, TOTAL_NEURON_COUNT> Neurons = {};
 
     std::array<std::array<double, MAX_INPUTS>, TOTAL_NEURON_COUNT> Weights = {};
@@ -82,8 +86,19 @@ struct NeuralNetwork
     std::array<double, TOTAL_NEURON_COUNT> RefracTime = {};
     std::array<double, TOTAL_NEURON_COUNT> DecayRates = {};
     std::array<bool, TOTAL_NEURON_COUNT> InactiveNeurons = {};
-    std::array<float, OUTPUT_NEURON_COUNT> Frequencies = {};
-    std::array<float, OUTPUT_NEURON_COUNT> LastTrigger = {};
+
+    struct Trigger
+    {
+        Trigger() = delete;
+        Trigger(double time, NeuronIdx outputIdx) : Time(time), OutputIdx(outputIdx) {};
+
+        double Time;
+        NeuronIdx OutputIdx;
+    };
+
+    std::vector<Trigger> RecentTriggers;
+
+    double GetFrequency(NeuronIdx outputIdx) const;
 
     void TriggerConnected(int8_t neuronIndex, uint32_t count, double duration = PULSE_TIME);
     void UpdateNetwork(double dt);

@@ -5,11 +5,11 @@
 
 #include "CartPole.h"
 
-static constexpr uint32_t MAX_INDIVIDUALS = 2048;
-static constexpr uint32_t EVOLUTION_MU = 256;
-static constexpr uint32_t MAX_EVALUTIONS_PER_GENOME = 16;
-static constexpr double INITIAL_SIGMA = 1.0;
-static constexpr double INITIAL_NEW_WEIGHT_SIGMA = 0.1;
+static constexpr uint32_t MAX_INDIVIDUALS = 1024 * 4;
+static constexpr uint32_t EVOLUTION_MU = 1024;
+static constexpr uint32_t MAX_EVALUTIONS_PER_GENOME = 4;
+static constexpr double INITIAL_SIGMA = 10.0;
+static constexpr double INITIAL_NEW_WEIGHT_SIGMA = 1.0;
 
 static constexpr float CROSSOVER_CHANCE = 0.0f;
 static constexpr float NEW_CONNECTION_CHANCE = 0.8f;
@@ -96,10 +96,10 @@ static constexpr std::array<NeuronParams, HIDDEN_NEURON_COUNT + OUTPUT_NEURON_CO
         {
             .VDrive = 3.0,
             .TauMem = 0.5,
-            .TauSyn = 0.01,
+            .TauSyn = 0.08,
             .VLeak = 0.0,
             .VThreshold = 1.244
-        },
+        }
     }
 };
 
@@ -137,6 +137,8 @@ struct Genome
 
 struct Player
 {
+    Player();
+
     NeuralNetwork Network = {};
     std::array<SpikeEncoder, INPUT_NEURON_COUNT> InputState = {};
     uint32_t PlayerIndex = 0;

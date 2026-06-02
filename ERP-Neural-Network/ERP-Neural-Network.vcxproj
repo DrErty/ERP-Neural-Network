@@ -147,6 +147,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CartPole.cpp" />
+    <ClCompile Include="ContinuousNetwork.cpp" />
     <ClCompile Include="Drawer.cpp" />
     <ClCompile Include="Evolution.cpp" />
     <ClCompile Include="Main.cpp" />
@@ -156,6 +157,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CartPole.h" />
+    <ClInclude Include="ContinuousNetwork.h" />
     <ClInclude Include="Drawer.h" />
     <ClInclude Include="ERP.h" />
     <ClInclude Include="Evolution.h" />

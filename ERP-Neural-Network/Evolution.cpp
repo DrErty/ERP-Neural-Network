@@ -44,21 +44,6 @@ static bool ValidConnection(const std::vector<Connection>& connections, int8_t i
             outputConnectionCount++;
     }
 
-    /*
-    for (auto& connection : connections)
-    {
-        if (GetNeuronIdxComplement(connection.InputNeuron) == inputNeuron && GetNeuronIdxComplement(connection.OutputNeuron) == outputNeuron)
-        {
-            return false;
-        }
-
-        if (GetNeuronIdxComplement(connection.InputNeuron) == inputNeuron)
-            inputConnectionCount++;
-        if (GetNeuronIdxComplement(connection.OutputNeuron) == outputNeuron)
-            outputConnectionCount++;
-    }
-    */
-
     if (inputConnectionCount >= MAX_INPUTS)
         return false;
 
@@ -72,60 +57,30 @@ Genome::Genome()
 {
     if (INPUT_NEURON_COUNT == 3)
     {
-        Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(0), false);
-        Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(1), false);
-        Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(2), false);
-    }
-    if (INPUT_NEURON_COUNT == 8)
-    {
-        if (true)
+        if (HIDDEN_NEURON_COUNT == 0)
         {
-            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromInputIdx(0), false);
-            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromInputIdx(1), false);
-
-            //Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(0), false);
+            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(0), false);
             Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(1), false);
-
-            //Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromHiddenIdx(0), false);
-            //Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromHiddenIdx(HIDDEN_NEURON_COUNT - 1), false);
-
-            //Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(HIDDEN_NEURON_COUNT - 1), GetNeuronIdxFromInputIdx(2), true);
-            //Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(HIDDEN_NEURON_COUNT - 1), GetNeuronIdxFromInputIdx(3), true);
-
-            //Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(0), GetNeuronIdxFromInputIdx(4), true);
-            //Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(0), GetNeuronIdxFromInputIdx(5), true);
-
-            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(6), false);
-            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(7), false);
-
-            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromInputIdx(6), false);
-        }
-        else
-        {
-            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromHiddenIdx(0), false);
-            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromHiddenIdx(HIDDEN_NEURON_COUNT - 1), false);
-            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromHiddenIdx(1), false);
-            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromHiddenIdx(HIDDEN_NEURON_COUNT - 2), false);
-            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromHiddenIdx(2), false);
-            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromHiddenIdx(HIDDEN_NEURON_COUNT - 3), false);
-
-            Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(0), GetNeuronIdxFromInputIdx(INPUT_NEURON_COUNT - 1), false);
-            Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(0), GetNeuronIdxFromInputIdx(INPUT_NEURON_COUNT - 2), false);
-
-            Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(HIDDEN_NEURON_COUNT - 1), GetNeuronIdxFromInputIdx(1), false);
-            Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(HIDDEN_NEURON_COUNT - 1), GetNeuronIdxFromInputIdx(0), false);
+            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(2), false);
         }
     }
-    else if (INPUT_NEURON_COUNT == 4)
+
+    else if (INPUT_NEURON_COUNT == 6)
     {
-        Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromInputIdx(0), false);
-        Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromInputIdx(1), false);
+        if (HIDDEN_NEURON_COUNT == 2)
+        {
+            Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(0), GetNeuronIdxFromInputIdx(0), false);
+            Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(0), GetNeuronIdxFromInputIdx(1), false);
+            Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(0), GetNeuronIdxFromInputIdx(2), false);
 
-        Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromHiddenIdx(0), false);
-        Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(1), GetNeuronIdxFromHiddenIdx(HIDDEN_NEURON_COUNT - 1), false);
+            Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(1), GetNeuronIdxFromInputIdx(3), false);
+            Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(1), GetNeuronIdxFromInputIdx(4), false);
+            Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(1), GetNeuronIdxFromInputIdx(5), false);
 
-        Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(2), false);
-        Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(3), false);
+            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromHiddenIdx(0), false);
+            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromHiddenIdx(1), false);
+            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(5), false);
+        }
     }
 }
 
@@ -160,6 +115,7 @@ void Genome::Print()
     {
         param.Print();
     }
+    std::cout << "Global Sigma:" << Sigma << '\n';
 }
 
 void Genome::Mutate(std::mt19937& rng)
@@ -176,20 +132,12 @@ void Genome::Mutate(std::mt19937& rng)
         std::normal_distribution<double> step(0.0, Sigma);
         for (auto& param : Params) {
             param.TauMem += step(rng);
-            param.TauMem = std::clamp(param.TauMem, 0.01, 2.0);
+            param.TauMem = std::clamp(param.TauMem, 0.005, 0.5);
 
             param.TauSyn += step(rng);
-            param.TauSyn = std::clamp(param.TauSyn, 0.01, 2.0);
+            param.TauSyn = std::clamp(param.TauSyn, 0.005, 0.5);
         }
     }
-
-    /*
-    for (double& vLeak : VLeaks)
-    {
-        vLeak += vLeakDistribution(rng);
-        vLeak = std::clamp(vLeak, 0.0, V_DD);
-    }
-    */
 
     if (MUTABLE_TOPOLOGY)
     {
@@ -202,11 +150,7 @@ void Genome::Mutate(std::mt19937& rng)
                 const NeuronIdx inputNeuron = Connections[deleteIdx].InputNeuron;
                 const NeuronIdx outputNeuron = Connections[deleteIdx].OutputNeuron;
                 Connections.erase(Connections.begin() + deleteIdx);
-                //const uint32_t deleteCompIdx = FindConnection(GetNeuronIdxComplement(inputNeuron), GetNeuronIdxComplement(outputNeuron));
-                //Assert(Connections[deleteCompIdx].Deletable);
-                //Connections.erase(Connections.begin() + deleteCompIdx);
             }
-            Assert(Connections.size() % 2 == 0);
         }
 
         while (uniformDistribution(rng) <= NEW_CONNECTION_CHANCE)
@@ -219,12 +163,9 @@ void Genome::Mutate(std::mt19937& rng)
                 uint32_t outputNeuron = outputDistribution(rng);
                 if (inputNeuron != outputNeuron)
                 {
-                    if (ValidConnection(Connections, inputNeuron, outputNeuron) and ValidConnection(Connections, GetNeuronIdxComplement(inputNeuron), GetNeuronIdxComplement(outputNeuron)))
+                    if (ValidConnection(Connections, inputNeuron, outputNeuron))
                     {
                         Connections.emplace_back(0.0, inputNeuron, outputNeuron, true);
-                        //Connections.emplace_back(0.0, GetNeuronIdxComplement(inputNeuron), GetNeuronIdxComplement(outputNeuron), true);
-
-                        //Assert(Connections.size() % 2 == 0);
                     }
                     break;
                 }
@@ -335,4 +276,9 @@ void VaryNetwork(NeuralNetwork& network, std::mt19937& rng, double alpha)
         params.VThreshold *= (1.0 + std::clamp(vThresholdNoise(rng) * alpha, -config.VThresholdNoiseSigma, config.VThresholdNoiseSigma));
         network.SetParams(neuronIdx, params);
     }
+}
+
+Player::Player()
+{
+
 }

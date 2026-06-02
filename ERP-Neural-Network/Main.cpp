@@ -14,13 +14,15 @@
 
 #include "SimulationUI.h"
 
+#include "ContinuousNetwork.h"
+
 static constexpr float M_PI = 3.14159265f;
 static constexpr float NEURON_SIZE = 80.0f;
 static constexpr float METER_WIDTH = NEURON_SIZE;
 static constexpr float METER_HEIGHT = 16.0f;
 static constexpr float METER_GAP = 8.0f;
 
-static constexpr double MAX_GAME_TIME = 60.0;
+static constexpr double MAX_GAME_TIME = 120.0;
 
 static constexpr uint32_t STRICT_MODE_START = 1;
 static constexpr uint32_t ALPHA_START = 5000;
@@ -173,7 +175,7 @@ static void UpdateInputs(const CartPole& game, Player& player)
 {
     for (uint32_t inputIdx = 0; inputIdx < INPUT_NEURON_COUNT; inputIdx++)
     {
-        float input = game.GetInput(player.PlayerIndex, inputIdx);
+        double input = game.GetInput(player.PlayerIndex, inputIdx);
         player.InputState[inputIdx].SetValue(input);
     }
 }
@@ -354,7 +356,7 @@ static Individual StartTraining(const Renderer& renderer, CartPole& game, std::m
                     const int32_t outputIndex = neuronIndex - INPUT_NEURON_COUNT - HIDDEN_NEURON_COUNT;
                     if (outputIndex >= 0 and outputIndex < OUTPUT_NEURON_COUNT)
                     {
-                        game.Action(player.PlayerIndex, player.Network.Frequencies[outputIndex]);
+                        game.Action(player.PlayerIndex, player.Network.GetFrequency(outputIndex));
                     }
                 }
             }
@@ -373,6 +375,135 @@ static Individual StartTraining(const Renderer& renderer, CartPole& game, std::m
         return individuals[0];
     else
         return {};
+}
+
+static void StartTrainingBetter(const Renderer& renderer, CartPole& game, std::mt19937& rng)
+{
+    GameState gameState;
+
+    struct EvolutionUnit
+    {
+        NetworkGenome Genome = {};
+        ContinuousNetwork Network = {};
+        uint32_t PlayerIndex = 0;
+    };
+
+    std::vector<EvolutionUnit> units;
+    units.reserve(MAX_INDIVIDUALS);
+
+    std::vector<double> history;
+    double lastBestFitness = 0.0;
+
+    auto startGeneration = [&]()
+        {
+            std::sort(units.begin(), units.end(), [&](const EvolutionUnit& a, const EvolutionUnit& b)
+                {
+                    return game.PlayerFitness(a.PlayerIndex) > game.PlayerFitness(b.PlayerIndex);
+                });
+
+            gameState.Generation += 1;
+            std::cout << gameState.Generation << std::endl;
+            EvolutionUnit* lastBestUnit = units.size() > 0 ? &units[0] : nullptr;
+            if (lastBestUnit)
+            {
+                //lastBestUnit->Genome.Print();
+                std::cout << "Fitness: " << game.PlayerFitness(lastBestUnit->PlayerIndex) << std::endl;
+            }
+
+            const double bestFitness = lastBestUnit ? game.PlayerFitness(lastBestUnit->PlayerIndex) : 0.0;
+
+            lastBestFitness = bestFitness;
+
+            if (units.size() > 0)
+                history.emplace_back(bestFitness);
+
+            game.Reset();
+
+            std::vector<EvolutionUnit> nextUnits;
+
+            std::uniform_int_distribution<size_t> randomDistribution(0, EVOLUTION_MU - 1);
+            std::uniform_real_distribution<float> continuousDistribution(0.0f, 1.0f);
+            for (uint32_t unitIndex = 0; unitIndex < MAX_INDIVIDUALS; unitIndex++)
+            {
+                EvolutionUnit& unit = nextUnits.emplace_back();
+
+                if (unitIndex >= 1 and units.size() > 0)
+                {
+                    if (continuousDistribution(rng) < CROSSOVER_CHANCE)
+                    {
+                        const NetworkGenome& genomeA = units[std::min(randomDistribution(rng), units.size() - 1)].Genome;
+                        const NetworkGenome& genomeB = units[std::min(randomDistribution(rng), units.size() - 1)].Genome;
+
+                        unit.Genome = Crossover(genomeA, genomeB, rng);
+                    }
+                    else
+                    {
+                        unit.Genome = units[std::min(randomDistribution(rng), units.size() - 1)].Genome;
+                    }
+
+                    // TODO: set sigma
+                    unit.Genome.Mutate(rng, 2.0);
+
+                    std::mt19937 playerRng(HashSeed(gameState.Generation, 0));
+                    const uint32_t playerIndex = game.AddPlayer(false, playerRng);
+                    unit.PlayerIndex = playerIndex;
+                }
+                else
+                {
+                    if (unitIndex < units.size())
+                        unit.Genome = units[unitIndex].Genome;
+
+                    std::mt19937 playerRng(HashSeed(gameState.Generation, 0));
+
+                    const uint32_t playerIndex = game.AddPlayer(unitIndex == 0, playerRng);
+                    unit.PlayerIndex = playerIndex;
+                }
+
+
+                unit.Network.SetFromGenome(unit.Genome);
+            }
+
+            // TODO: Move needed?
+            units = std::move(nextUnits);
+        };
+
+    startGeneration();
+
+    double lastFrameTime = 0.0;
+    while (!gameState.Quit)
+    {
+        Frame frame = {};
+        if (gameState.Render)
+        {
+            frame = FrameStart(renderer);
+        }
+
+        HandleGameInputs(gameState);
+        game.Step(SIM_DT, gameState.Generation > STRICT_MODE_START);
+
+        // New generation
+        if (game.IsDone() || gameState.Skip || game.GetSimTime() > MAX_GAME_TIME)
+        {
+            gameState.Skip = false;
+            startGeneration();
+        }
+
+        std::for_each(std::execution::par, units.begin(), units.end(), [&game](EvolutionUnit& unit)
+            {
+                const std::array<Scalar, INPUT_COUNT> input = game.GetInputs(unit.PlayerIndex);
+                std::array<Scalar, OUTPUT_COUNT> output = {};
+                unit.Network.Evaluate(input, output);
+                game.SetForce(unit.PlayerIndex, output[0]);
+            });
+
+        if (gameState.Render)
+        {
+            game.Render();
+            //DrawSidebar(renderer.Renderer, gameState.Generation, units, game, history, 0.0, lastFrameTime);
+
+            lastFrameTime = FrameEnd(renderer, frame, gameState.SpeedUp);
+        }
+    }
 }
 
 static void StartSim(const Renderer& renderer, CartPole& game, std::mt19937& rng, Individual& simIndividual)
@@ -580,9 +711,11 @@ int main(int argc, char* argv[])
     StartSim(renderer, game, rng, bestIndividual);
 #endif
 
+    StartTrainingBetter(renderer, game, rng);
+
 #if 1
-    Individual bestIndividual = StartTraining(renderer, game, rng);
-    StartSim(renderer, game, rng, bestIndividual);
+    //Individual bestIndividual = StartTraining(renderer, game, rng);
+    //StartSim(renderer, game, rng, bestIndividual);
 #else 
     StartExp(renderer, game, rng);
 #endif

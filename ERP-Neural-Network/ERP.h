@@ -17,11 +17,17 @@
 
 #define NOMINMAX
 
-static constexpr double SIM_DT = 1.0 / 60.0; // Seconds
-static constexpr uint32_t NEURON_SUBSTEPS = 8;
+using Scalar = double;
+
+static constexpr Scalar SIM_DT = Scalar(1.0 / 60.0); // Seconds
+static constexpr uint32_t NEURON_SUBSTEPS = 16;
 static constexpr uint32_t SERIAL_SUBSTEPS = 32;
 
-static constexpr double g_PI = 3.1415926535897932384626433832;
+static constexpr Scalar g_PI = Scalar(3.1415926535897932384626433832);
+
+static constexpr Scalar MAX_OUTPUT_RATE_OFFSET = Scalar(20.0);
+static constexpr Scalar MIN_INPUT_RATE = Scalar(0.0);
+static constexpr Scalar MAX_INPUT_RATE = Scalar(60.0);
 
 static uint32_t HashSeed(uint32_t generation, uint32_t slot)
 {

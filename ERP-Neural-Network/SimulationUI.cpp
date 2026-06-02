@@ -151,7 +151,8 @@ void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const std::vector<
 
     if (individuals.size() > 0)
     {
-        const NeuralNetwork& baseNetwork = individuals[0].Players2[0].Network;
+        const Player& player = individuals[0].Players2[0];
+        const NeuralNetwork& baseNetwork = player.Network;
 
         constexpr uint32_t layerCount = 3;
         constexpr std::array<uint32_t, layerCount> layerSizes = { INPUT_NEURON_COUNT, HIDDEN_NEURON_COUNT, OUTPUT_NEURON_COUNT };
@@ -263,7 +264,19 @@ void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const std::vector<
 
             if (neuronIndex >= INPUT_NEURON_COUNT + HIDDEN_NEURON_COUNT)
             {
-                float frequency = baseNetwork.Frequencies[neuronIndex - INPUT_NEURON_COUNT - HIDDEN_NEURON_COUNT];
+                float frequency = baseNetwork.GetFrequency(neuronIndex - INPUT_NEURON_COUNT - HIDDEN_NEURON_COUNT);
+                std::string freq = std::to_string(frequency);
+                Drawer::DrawTextSlow(renderer, freq,
+                    neuronScreenX[neuronIndex] - neuronRadius * 2,
+                    neuronScreenY[neuronIndex],
+                    { 255, 255, 255, 255 },
+                    Drawer::g_FontSmall, true
+                );
+            }
+
+            if (neuronIndex < INPUT_NEURON_COUNT)
+            {
+                float frequency = player.InputState[neuronIndex].CurrentRate();
                 std::string freq = std::to_string(frequency);
                 Drawer::DrawTextSlow(renderer, freq,
                     neuronScreenX[neuronIndex] - neuronRadius * 2,

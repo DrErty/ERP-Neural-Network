@@ -11,7 +11,10 @@ public:
     uint32_t AddPlayer(bool display, std::mt19937& rng);
 
     void Action(uint32_t playerIndex, double spikeFrequency);
-    float GetInput(uint32_t playerIndex, uint32_t inputIndex) const;
+    void SetForce(uint32_t playerIndex, double strength);
+    double GetInput(uint32_t playerIndex, uint32_t inputIndex) const;
+
+    std::array<Scalar, 4> GetInputs(uint32_t playerIndex) const;
 
     bool PlayerAlive(uint32_t playerIndex) const { return m_Players[playerIndex].Alive; }
     double PlayerFitness(uint32_t playerIndex) const { return m_Players[playerIndex].Fitness; }
@@ -27,20 +30,22 @@ public:
     void Reset();
     void KillPlayer(uint32_t playerIndex);
 private:
-    static constexpr uint32_t PHYS_STEPS = 4;
+    static constexpr uint32_t PHYS_STEPS = 16;
+
+    static constexpr double TIME_SETTING = 0.0;
 
     static constexpr double CART_MASS = 1.0;
-    static constexpr double POLE_MASS = 0.001;
+    static constexpr double POLE_MASS = 0.1;
     static constexpr double POLE_HALF_LENGTH = 0.5;
     static constexpr double GRAVITY_ACCEL = 9.81;
-    static constexpr double FORCE_MAGNITUDE = 6.0;
+    static constexpr double FORCE_MAGNITUDE = 12.0;
     static constexpr double ANGLE_LIMIT = g_PI / 2.0;
 
-    static constexpr float ANGLE_NORM = static_cast<float>(g_PI) / 4.0f;
-    static constexpr float ANGULAR_VEL_NORM = 4.0f;
-    static constexpr float POSITION_NORM = 4.0f;
-    static constexpr float REWARD_RADIUS = 1.0f;
-    static constexpr float CART_VEL_NORM = 16.0f;
+    static constexpr double ANGLE_NORM = g_PI / 2.0;
+    static constexpr double ANGULAR_VEL_NORM = 4.0;
+    static constexpr double POSITION_NORM = 4.0;
+    static constexpr double REWARD_RADIUS = 1.0;
+    static constexpr double CART_VEL_NORM = 16.0;
 
     static constexpr double HELD_UP_ANGLE = g_PI / 2.0;
 
@@ -61,7 +66,7 @@ private:
         PhysicsState State;
         bool HeldUp = false;
         double Fitness = 0.0;
-        float PendingForce = 0.0f;
+        double PendingForce = 0.0f;
         bool Alive = true;
         bool Display = true;
     };
@@ -90,4 +95,6 @@ private:
 
     double m_CameraX = 0.0;
     double m_CameraSpeed = 0.0;
+
+    double m_BaseLineFrequency = 0.0;
 };
