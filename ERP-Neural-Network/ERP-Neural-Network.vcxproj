@@ -150,8 +150,11 @@
     <ClCompile Include="ContinuousNetwork.cpp" />
     <ClCompile Include="Drawer.cpp" />
     <ClCompile Include="Evolution.cpp" />
+    <ClCompile Include="IO.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Neuron.cpp" />
+    <ClCompile Include="Oscilloscope.cpp" />
+    <ClCompile Include="RingBuffer.cpp" />
     <ClCompile Include="serialib.cpp" />
     <ClCompile Include="SimulationUI.cpp" />
   </ItemGroup>
@@ -161,7 +164,10 @@
     <ClInclude Include="Drawer.h" />
     <ClInclude Include="ERP.h" />
     <ClInclude Include="Evolution.h" />
+    <ClInclude Include="IO.h" />
     <ClInclude Include="Neuron.h" />
+    <ClInclude Include="Oscilloscope.h" />
+    <ClInclude Include="RingBuffer.h" />
     <ClInclude Include="serialib.h" />
     <ClInclude Include="SimulationUI.h" />
   </ItemGroup>

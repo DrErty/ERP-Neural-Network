@@ -5,18 +5,6 @@
 
 #include "CartPole.h"
 
-static constexpr uint32_t MAX_INDIVIDUALS = 1024 * 4;
-static constexpr uint32_t EVOLUTION_MU = 1024;
-static constexpr uint32_t MAX_EVALUTIONS_PER_GENOME = 4;
-static constexpr double INITIAL_SIGMA = 10.0;
-static constexpr double INITIAL_NEW_WEIGHT_SIGMA = 1.0;
-
-static constexpr float CROSSOVER_CHANCE = 0.0f;
-static constexpr float NEW_CONNECTION_CHANCE = 0.8f;
-static constexpr float DELETE_CONNECTION_CHANCE = 0.5f;
-
-static constexpr bool MUTABLE_TOPOLOGY = false;
-
 struct NoisyEvalConfig
 {
     double WeightNoiseSigma = 0.3;

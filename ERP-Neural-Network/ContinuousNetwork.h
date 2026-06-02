@@ -2,16 +2,16 @@
 
 #include "ERP.h"
 
-static constexpr std::array LAYER_SIZES = { 4u, 3u, 1u };
+static constexpr std::array LAYER_SIZES = { 5u, 3u, 1u };
 
 static constexpr uint32_t LAYER_COUNT = static_cast<uint32_t>(LAYER_SIZES.size());
 static constexpr uint32_t INPUT_COUNT = LAYER_SIZES.front();
 static constexpr uint32_t OUTPUT_COUNT = LAYER_SIZES.back();
 static constexpr uint32_t HIDDEN_LAYERS = LAYER_COUNT - 2;
 
-static constexpr Scalar WEIGHT_LIMIT = Scalar(8.0);
+static constexpr Scalar WEIGHT_LIMIT = Scalar(100.0);
 
-namespace detail
+namespace Detail
 {
     constexpr uint32_t WeightCount()
     {
@@ -38,17 +38,28 @@ namespace detail
     }
 }
 
-static constexpr uint32_t WEIGHT_COUNT = detail::WeightCount();
-static constexpr uint32_t BIAS_COUNT = detail::BiasCount();
-static constexpr uint32_t MAX_LAYER_SIZE = detail::MaxLayerSize();
+static constexpr uint32_t WEIGHT_COUNT = Detail::WeightCount();
+static constexpr uint32_t BIAS_COUNT = Detail::BiasCount();
+static constexpr uint32_t MAX_LAYER_SIZE = Detail::MaxLayerSize();
 
 struct NetworkGenome
 {
-    std::array<Scalar, WEIGHT_COUNT> Weights{};
-    std::array<Scalar, BIAS_COUNT> Biases{};
+    NetworkGenome()
+    {
+        for (auto& sigma : WeightsSigma)
+            sigma = INITIAL_SIGMA;
+
+        for (auto& sigma : BiasesSigma)
+            sigma = INITIAL_SIGMA;
+    }
+
+    std::array<Scalar, WEIGHT_COUNT> Weights = {};
+    std::array<Scalar, BIAS_COUNT> Biases = {};
+    std::array<Scalar, WEIGHT_COUNT> WeightsSigma = {};
+    std::array<Scalar, BIAS_COUNT> BiasesSigma = {};
 
     void Randomize(std::mt19937& rng, Scalar range = Scalar(1.0));
-    void Mutate(std::mt19937& rng, Scalar sigma);
+    void Mutate(std::mt19937& rng);
 };
 
 NetworkGenome Crossover(const NetworkGenome& a, const NetworkGenome& b, std::mt19937& rng);

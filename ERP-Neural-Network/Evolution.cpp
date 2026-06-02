@@ -182,7 +182,7 @@ void Genome::Mutate(std::mt19937& rng)
     for (auto& connection : Connections)
     {
         connection.Sigma *= globalFactor * std::exp(tauLocal * n01(rng));
-        connection.Sigma = std::clamp(connection.Sigma, 0.0, INITIAL_NEW_WEIGHT_SIGMA);
+        //connection.Sigma = std::clamp(connection.Sigma, 0.0, INITIAL_NEW_WEIGHT_SIGMA);
 
         std::normal_distribution<double> weightStep(0.0, connection.Sigma);
         connection.Weight += weightStep(rng);

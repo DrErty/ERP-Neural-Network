@@ -11,23 +11,49 @@ void NetworkGenome::Randomize(std::mt19937& rng, Scalar range)
     for (Scalar& b : Biases)  b = dist(rng);
 }
 
-void NetworkGenome::Mutate(std::mt19937& rng, Scalar sigma)
+void NetworkGenome::Mutate(std::mt19937& rng)
 {
-    std::normal_distribution<Scalar> step(Scalar(0.0), sigma);
-    for (Scalar& w : Weights)
+    for (uint32_t idx = 0; idx < WEIGHT_COUNT; idx++)
+    {
+        std::normal_distribution<Scalar> step(Scalar(0.0), WeightsSigma[idx]);
+        Scalar& w = Weights[idx];
         w = std::clamp(w + step(rng), -WEIGHT_LIMIT, WEIGHT_LIMIT);
-    for (Scalar& b : Biases)
+    }
+    for (uint32_t idx = 0; idx < BIAS_COUNT; idx++)
+    {
+        std::normal_distribution<Scalar> step(Scalar(0.0), BiasesSigma[idx]);
+        Scalar& b = Biases[idx];
         b = std::clamp(b + step(rng), -WEIGHT_LIMIT, WEIGHT_LIMIT);
+    }
+
+    std::normal_distribution<double> n01(0.0, 1.0);
+
+    const double n = static_cast<double>(std::max<size_t>(1, WEIGHT_COUNT));
+    const double tauGlobal = 1.0 / std::sqrt(2.0 * n);
+    const double tauLocal = 1.0 / std::sqrt(2.0 * std::sqrt(n));
+
+    const double globalFactor = std::exp(tauGlobal * n01(rng));
+
+    for (auto& sigma : WeightsSigma)
+    {
+        sigma *= globalFactor * std::exp(tauLocal * n01(rng));
+        sigma = std::clamp(sigma, Scalar(0.0), INITIAL_SIGMA);
+    }
+    for (auto& sigma : BiasesSigma)
+    {
+        sigma *= globalFactor * std::exp(tauLocal * n01(rng));
+        sigma = std::clamp(sigma, Scalar(0.0), INITIAL_SIGMA);
+    }
 }
 
 NetworkGenome Crossover(const NetworkGenome& a, const NetworkGenome& b, std::mt19937& rng)
 {
-    std::uniform_int_distribution<int> coin(0, 1);
+    std::uniform_int_distribution<int> distribution(0, 1);
     NetworkGenome child;
     for (uint32_t i = 0; i < WEIGHT_COUNT; ++i)
-        child.Weights[i] = coin(rng) ? a.Weights[i] : b.Weights[i];
+        child.Weights[i] = distribution(rng) ? a.Weights[i] : b.Weights[i];
     for (uint32_t i = 0; i < BIAS_COUNT; ++i)
-        child.Biases[i] = coin(rng) ? a.Biases[i] : b.Biases[i];
+        child.Biases[i] = distribution(rng) ? a.Biases[i] : b.Biases[i];
     return child;
 }
 

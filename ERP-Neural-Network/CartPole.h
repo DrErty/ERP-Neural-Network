@@ -6,22 +6,29 @@
 class CartPole
 {
 public:
+    struct PhysicsState
+    {
+        Scalar X = Scalar(0.0);
+        Scalar XDot = Scalar(0.0);
+        Scalar Theta = Scalar(0.0);
+        Scalar ThetaDot = Scalar(0.0);
+    };
+
     CartPole(SDL_Renderer* renderer, uint32_t gameHeight = Drawer::DEFAULT_WINDOW_HEIGHT, uint32_t gameWidth = Drawer::DEFAULT_WINDOW_WIDTH);
 
     uint32_t AddPlayer(bool display, std::mt19937& rng);
 
-    void Action(uint32_t playerIndex, double spikeFrequency);
-    void SetForce(uint32_t playerIndex, double strength);
-    double GetInput(uint32_t playerIndex, uint32_t inputIndex) const;
+    void SetForce(uint32_t playerIndex, Scalar strength);
+    std::array<Scalar, 5> GetInputs(uint32_t playerIndex) const;
 
-    std::array<Scalar, 4> GetInputs(uint32_t playerIndex) const;
+    const PhysicsState& GetState(uint32_t playerIndex) const;
 
     bool PlayerAlive(uint32_t playerIndex) const { return m_Players[playerIndex].Alive; }
-    double PlayerFitness(uint32_t playerIndex) const { return m_Players[playerIndex].Fitness; }
+    Scalar PlayerFitness(uint32_t playerIndex) const { return m_Players[playerIndex].Fitness; }
     uint32_t PlayerCount() const { return static_cast<uint32_t>(m_Players.size()); }
     uint32_t AliveCount() const { return m_AliveCount; }
 
-    void Step(float dt, bool strictMode);
+    void Step(Scalar dt);
     void Render();
 
     bool IsDone() const { return m_Done; }
@@ -32,41 +39,30 @@ public:
 private:
     static constexpr uint32_t PHYS_STEPS = 16;
 
-    static constexpr double TIME_SETTING = 0.0;
+    static constexpr Scalar CART_MASS = Scalar(1.0);
+    static constexpr Scalar POLE_MASS = Scalar(0.1);
+    static constexpr Scalar POLE_HALF_LENGTH = Scalar(0.5);
+    static constexpr Scalar GRAVITY_ACCEL = Scalar(9.81);
+    static constexpr Scalar FORCE_MAGNITUDE = Scalar(8.0);
 
-    static constexpr double CART_MASS = 1.0;
-    static constexpr double POLE_MASS = 0.1;
-    static constexpr double POLE_HALF_LENGTH = 0.5;
-    static constexpr double GRAVITY_ACCEL = 9.81;
-    static constexpr double FORCE_MAGNITUDE = 12.0;
-    static constexpr double ANGLE_LIMIT = g_PI / 2.0;
+    static constexpr Scalar ANGLE_NORM = g_PI;
+    static constexpr Scalar ANGULAR_VEL_NORM = Scalar(4.0);
+    static constexpr Scalar POSITION_NORM = Scalar(3.0);
+    static constexpr Scalar CART_VEL_NORM = Scalar(16.0);
 
-    static constexpr double ANGLE_NORM = g_PI / 2.0;
-    static constexpr double ANGULAR_VEL_NORM = 4.0;
-    static constexpr double POSITION_NORM = 4.0;
-    static constexpr double REWARD_RADIUS = 1.0;
-    static constexpr double CART_VEL_NORM = 16.0;
+    static constexpr Scalar HELD_UP_ANGLE = g_PI / Scalar(6.0);
+    static constexpr Scalar KILL_ANGLE = g_PI / Scalar(2.0);
 
-    static constexpr double HELD_UP_ANGLE = g_PI / 2.0;
-
-    static constexpr double KILL_TIME = 10.0;
+    static constexpr Scalar KILL_TIME = Scalar(10.0);
 
     static constexpr bool MOVING_CAMERA = false;
-
-    struct PhysicsState
-    {
-        double X = 0.0;
-        double XDot = 0.0;
-        double Theta = 0.0;
-        double ThetaDot = 0.0;
-    };
 
     struct Player
     {
         PhysicsState State;
         bool HeldUp = false;
-        double Fitness = 0.0;
-        double PendingForce = 0.0f;
+        Scalar Fitness = 0.0;
+        Scalar PendingForce = 0.0f;
         bool Alive = true;
         bool Display = true;
     };
@@ -91,10 +87,8 @@ private:
     std::vector<Player*> m_AlivePlayers;
     uint32_t m_AliveCount = 0;
     bool m_Done = false;
-    double m_SimTime = 0.0;
+    Scalar m_SimTime = 0.0;
 
-    double m_CameraX = 0.0;
-    double m_CameraSpeed = 0.0;
-
-    double m_BaseLineFrequency = 0.0;
+    Scalar m_CameraX = 0.0;
+    Scalar m_CameraSpeed = 0.0;
 };
