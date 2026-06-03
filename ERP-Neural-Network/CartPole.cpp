@@ -17,7 +17,7 @@ uint32_t CartPole::AddPlayer(bool display, std::mt19937& rng)
     std::uniform_real_distribution<double> distribution(-1.0, 1.0);
     if (playerIndex % 2 == 0)
     {
-        player.State.Theta = g_PI / 4.0 * distribution(rng);
+        player.State.Theta = g_PI / 8.0 * distribution(rng);
     }
     else
     {
@@ -43,10 +43,10 @@ void CartPole::SetForce(uint32_t playerIndex, Scalar strength)
     Player& player = m_Players[playerIndex];
     if (!player.Alive) return;
     
-    player.PendingForce = std::clamp(strength, -1.0, 1.0) * FORCE_MAGNITUDE;
+    player.PendingForce = std::clamp(strength * Scalar(2.0) - Scalar(1.0), Scalar(-1.0), Scalar(1.0)) * FORCE_MAGNITUDE;
 }
 
-std::array<Scalar, 5> CartPole::GetInputs(uint32_t playerIndex) const
+std::array<Scalar, INPUT_COUNT> CartPole::GetInputs(uint32_t playerIndex) const
 {
     Assert(playerIndex < m_Players.size());
 
@@ -56,8 +56,8 @@ std::array<Scalar, 5> CartPole::GetInputs(uint32_t playerIndex) const
     const double thetaDotNormed = state.ThetaDot / ANGULAR_VEL_NORM;
     const double XNormed = state.X / POSITION_NORM;
     const double XDotNormed = state.XDot / CART_VEL_NORM;
-    const double IsUp = m_Players[playerIndex].HeldUp ? 1.0 : -1.0;
-    return { thetaNormed, thetaDotNormed, XNormed, XDotNormed, IsUp };
+    const double IsUp = std::abs(state.Theta) < g_PI;
+    return { thetaNormed, thetaDotNormed, XDotNormed };
 }
 
 const CartPole::PhysicsState& CartPole::GetState(uint32_t playerIndex) const

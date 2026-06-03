@@ -582,10 +582,6 @@ void SettingsPanel::Draw(SDL_Renderer* renderer)
     }
 }
 
-// ===========================================================================
-// Dashboard
-// ===========================================================================
-
 Dashboard::Dashboard(uint32_t windowWidth, uint32_t windowHeight)
     : m_WindowWidth(windowWidth)
     , m_WindowHeight(windowHeight)
@@ -694,10 +690,18 @@ void Dashboard::DrawNetwork(SDL_Renderer* renderer, const NetworkGenome& genome)
             for (uint32_t i = 0; i < prev; ++i)
             {
                 const Scalar wv = genome.Weights[wOff + j * prev + i];
-                Drawer::SetColor(renderer, signedColor(static_cast<float>(wv), 24));
-                const P a = pos[layerStart[l - 1] + i];
-                const P b = pos[layerStart[l] + j];
-                SDL_RenderLine(renderer, a.x, a.y, b.x, b.y);
+                if (wv != 0.0)
+                {
+                    Drawer::SetColor(renderer, signedColor(static_cast<float>(wv), 24));
+                    const P a = pos[layerStart[l - 1] + i];
+                    const P b = pos[layerStart[l] + j];
+                    SDL_RenderLine(renderer, a.x, a.y, b.x, b.y);
+
+                    const P m = { (a.x + b.x) / 2.0f, (a.y + b.y) / 2.0f };
+
+                    if (Drawer::g_FontSmall)
+                        Drawer::DrawTextSlow(renderer, std::to_string(wv) + ", " + std::to_string(wOff + j * prev + i), m.x, m.y, Drawer::Col{200, 215, 240, 230}, Drawer::g_FontSmall, false);
+                }
             }
         }
         wOff += prev * cur;

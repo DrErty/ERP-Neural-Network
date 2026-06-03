@@ -27,12 +27,12 @@ using Scalar = double;
 
 static constexpr Scalar g_PI = Scalar(3.1415926535897932384626433832);
 
-static constexpr Scalar SIM_DT = Scalar(1.0 / 120.0); // Seconds
+static constexpr Scalar SIM_DT = Scalar(1.0 / 60.0); // Seconds
 
 static constexpr uint32_t NEURON_SUBSTEPS = 16;
 static constexpr uint32_t SERIAL_SUBSTEPS = 32;
 
-static constexpr uint32_t MAX_INDIVIDUALS = 1024;
+static constexpr uint32_t MAX_INDIVIDUALS = 512;
 static constexpr uint32_t EVOLUTION_MU = 32;
 static constexpr uint32_t MAX_EVALUTIONS_PER_GENOME = 8;
 

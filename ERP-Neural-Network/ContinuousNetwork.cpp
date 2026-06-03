@@ -65,11 +65,16 @@ void ContinuousNetwork::SetFromGenome(const NetworkGenome& genome)
 
 Scalar ContinuousNetwork::Activation(Scalar x)
 {
-    return std::tanh(x);
+    if (x < 0.0)
+        return 0.0;
+
+    return x;
+    //return std::tanh(x);
 }
 
 Scalar ContinuousNetwork::OutputActivation(Scalar x)
 {
+    //return Activation(x);
     return std::tanh(x);
 }
 
@@ -91,7 +96,7 @@ void ContinuousNetwork::Evaluate(const std::array<Scalar, INPUT_COUNT>& input, s
     {
         const uint32_t prevSize = LAYER_SIZES[layer - 1];
         const uint32_t curSize = LAYER_SIZES[layer];
-        const bool     isOutput = (layer == LAYER_COUNT - 1);
+        const bool isOutput = (layer == LAYER_COUNT - 1);
 
         for (uint32_t j = 0; j < curSize; ++j)
         {

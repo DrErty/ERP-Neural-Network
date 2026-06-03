@@ -2,7 +2,7 @@
 
 #include "ERP.h"
 
-static constexpr std::array LAYER_SIZES = { 5u, 3u, 1u };
+static constexpr std::array LAYER_SIZES = { 3u, 3u, 1u };
 
 static constexpr uint32_t LAYER_COUNT = static_cast<uint32_t>(LAYER_SIZES.size());
 static constexpr uint32_t INPUT_COUNT = LAYER_SIZES.front();

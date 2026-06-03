@@ -2,6 +2,7 @@
 
 #include "Drawer.h"
 #include "Neuron.h"
+#include "ContinuousNetwork.h"
 
 class CartPole
 {
@@ -19,7 +20,7 @@ public:
     uint32_t AddPlayer(bool display, std::mt19937& rng);
 
     void SetForce(uint32_t playerIndex, Scalar strength);
-    std::array<Scalar, 5> GetInputs(uint32_t playerIndex) const;
+    std::array<Scalar, INPUT_COUNT> GetInputs(uint32_t playerIndex) const;
 
     const PhysicsState& GetState(uint32_t playerIndex) const;
 

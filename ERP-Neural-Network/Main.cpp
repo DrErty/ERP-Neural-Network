@@ -259,8 +259,7 @@ static void StartLoop(const Renderer& renderer, GameState& gameState, CartPole& 
 
 static void StartTrainingBetter(const Renderer& renderer, GameState& gameState, CartPole& game, std::mt19937& rng)
 {
-    Oscilloscope oscilloscope;
-    oscilloscope.SetAutoScale(true);
+    Dashboard dashboard;
 
     RingBuffer thetaBuffer;
 
@@ -361,7 +360,12 @@ static void StartTrainingBetter(const Renderer& renderer, GameState& gameState, 
     
     auto renderFunction = [&]()
         {
-            oscilloscope.Draw(renderer.Renderer, thetaBuffer.Span());
+            dashboard.DrawScope(renderer.Renderer, thetaBuffer.Span());
+
+            if (units.size() > 0)
+            {
+                dashboard.DrawNetwork(renderer.Renderer, units[0].Genome);
+            }
         };
 
     StartLoop(renderer, gameState, game, updateFunction, renderFunction, resetFunction);
@@ -372,8 +376,7 @@ static void StartTrainingBetter(const Renderer& renderer, GameState& gameState, 
 
 static void StartSim(const Renderer& renderer, GameState& gameState, CartPole& game, std::mt19937& rng)
 {
-    Oscilloscope oscilloscope;
-    oscilloscope.SetAutoScale(true);
+    Dashboard dashboard;
 
     RingBuffer thetaBuffer;
 
@@ -415,7 +418,8 @@ static void StartSim(const Renderer& renderer, GameState& gameState, CartPole& g
 
     auto renderFunction = [&]()
         {
-            oscilloscope.Draw(renderer.Renderer, thetaBuffer.Span());
+            dashboard.DrawScope(renderer.Renderer, thetaBuffer.Span());
+            dashboard.DrawNetwork(renderer.Renderer, genomeLoadResult.Genome);
         };
 
     StartLoop(renderer, gameState, game, updateFunction, renderFunction, resetFunction);
@@ -536,8 +540,8 @@ int main(int argc, char* argv[])
 
     GameState gameState;
 
-    //StartTrainingBetter(renderer, gameState, game, rng);
-    StartSim(renderer, gameState, game, rng);
+    StartTrainingBetter(renderer, gameState, game, rng);
+    //StartSim(renderer, gameState, game, rng);
 
     StopSDL(renderer);
     
