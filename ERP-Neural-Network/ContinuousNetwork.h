@@ -2,14 +2,14 @@
 
 #include "ERP.h"
 
-static constexpr std::array LAYER_SIZES = { 3u, 3u, 1u };
+static constexpr std::array LAYER_SIZES = { 3u, 3u, 2u };
 
 static constexpr uint32_t LAYER_COUNT = static_cast<uint32_t>(LAYER_SIZES.size());
 static constexpr uint32_t INPUT_COUNT = LAYER_SIZES.front();
 static constexpr uint32_t OUTPUT_COUNT = LAYER_SIZES.back();
 static constexpr uint32_t HIDDEN_LAYERS = LAYER_COUNT - 2;
 
-static constexpr Scalar WEIGHT_LIMIT = Scalar(100.0);
+static constexpr Scalar WEIGHT_LIMIT = Scalar(0.3);
 
 namespace Detail
 {

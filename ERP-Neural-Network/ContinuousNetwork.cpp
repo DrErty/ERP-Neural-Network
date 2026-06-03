@@ -63,19 +63,20 @@ void ContinuousNetwork::SetFromGenome(const NetworkGenome& genome)
     m_Biases = genome.Biases;
 }
 
+// ReLu
 Scalar ContinuousNetwork::Activation(Scalar x)
 {
-    if (x < 0.0)
-        return 0.0;
-
-    return x;
-    //return std::tanh(x);
+    //if (x < 0.0)
+    //    return 0.0;
+    //
+    //return x;
+    return std::tanh(x) * 1000.0;
 }
 
 Scalar ContinuousNetwork::OutputActivation(Scalar x)
 {
-    //return Activation(x);
-    return std::tanh(x);
+    return Activation(x);
+    //return x;
 }
 
 void ContinuousNetwork::Evaluate(const std::array<Scalar, INPUT_COUNT>& input, std::array<Scalar, OUTPUT_COUNT>& output) const

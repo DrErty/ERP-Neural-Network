@@ -43,7 +43,7 @@ void CartPole::SetForce(uint32_t playerIndex, Scalar strength)
     Player& player = m_Players[playerIndex];
     if (!player.Alive) return;
     
-    player.PendingForce = std::clamp(strength * Scalar(2.0) - Scalar(1.0), Scalar(-1.0), Scalar(1.0)) * FORCE_MAGNITUDE;
+    player.PendingForce = std::clamp(strength, Scalar(-1.0), Scalar(1.0)) * FORCE_MAGNITUDE;
 }
 
 std::array<Scalar, INPUT_COUNT> CartPole::GetInputs(uint32_t playerIndex) const
@@ -136,7 +136,7 @@ void CartPole::Step(Scalar dt)
 
                 player->Fitness += energyReward * physDt * 200.0;
                 player->Fitness += physDt * 50.0;
-                player->Fitness += std::max(0.0, positionFraction) * physDt * 100.0;
+                //player->Fitness += std::max(0.0, positionFraction) * physDt * 1000.0;
             }
         });
 

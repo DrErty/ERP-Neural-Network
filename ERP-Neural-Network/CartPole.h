@@ -56,7 +56,7 @@ private:
 
     static constexpr Scalar KILL_TIME = Scalar(10.0);
 
-    static constexpr bool MOVING_CAMERA = false;
+    static constexpr bool MOVING_CAMERA = true;
 
     struct Player
     {

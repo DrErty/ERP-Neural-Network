@@ -410,7 +410,9 @@ static void StartSim(const Renderer& renderer, GameState& gameState, CartPole& g
             const std::array<Scalar, INPUT_COUNT> input = game.GetInputs(currentPlayerIndex);
             std::array<Scalar, OUTPUT_COUNT> output = {};
             network.Evaluate(input, output);
-            game.SetForce(currentPlayerIndex, output[0]);
+
+            double totalForce = std::clamp(output[0], 0.0, 1.0) - std::clamp(output[1], 0.0, 1.0);
+            game.SetForce(currentPlayerIndex, totalForce);
 
             const CartPole::PhysicsState& state = game.GetState(currentPlayerIndex);
             thetaBuffer.Push(state.Theta);
