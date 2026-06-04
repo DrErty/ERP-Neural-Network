@@ -428,6 +428,75 @@ static void StartSim(const Renderer& renderer, GameState& gameState, CartPole& g
     StartLoop(renderer, gameState, game, updateFunction, renderFunction, resetFunction);
 }
 
+static void StartExp(const Renderer& renderer, GameState& gameState, CartPole& game, std::mt19937& rng)
+{
+    Dashboard dashboard;
+
+    RingBuffer thetaBuffer;
+
+    uint32_t currentPlayerIndex = 0;
+
+    // TODO: Bad RNG
+    std::mt19937 playerRng(0);
+
+    serialib serial;
+    serial.openDevice("COM4", 115200);
+
+    auto resetFunction = [&]()
+        {
+            thetaBuffer.Clear();
+
+            game.Reset();
+
+            currentPlayerIndex = game.AddPlayer(true, playerRng);
+        };
+
+    resetFunction();
+
+    auto updateFunction = [&](uint64_t frameIndex)
+        {
+            const std::array<Scalar, INPUT_COUNT> inputs = game.GetInputs(currentPlayerIndex);
+            std::string serialData;
+            serialData += std::to_string(inputs[0]);
+            serialData += ',';
+            serialData += std::to_string(inputs[1]);
+            serialData += ',';
+            serialData += std::to_string(inputs[2]);
+            serialData += '\n';
+            serial.writeString(serialData.c_str());
+
+            std::array<char, 1024> buff = {};
+            while (serial.available() > 0)
+            {
+                // TODO: -1 needed?
+                serial.readString(buff.data(), '\n', buff.size() - 1);
+
+                if (strncmp(buff.data(), "Error", 5) == 0)
+                {
+                    std::cout << buff.data();
+                }
+                else
+                {
+                    double out = 0.0;
+                    const auto [ptr, ec] = std::from_chars(buff.data(), buff.data() + buff.size(), out);
+
+                    game.SetForce(currentPlayerIndex, out);
+                    //std::cout << out << '\n';
+                }
+            }
+
+            const CartPole::PhysicsState& state = game.GetState(currentPlayerIndex);
+            thetaBuffer.Push(state.Theta);
+        };
+
+    auto renderFunction = [&]()
+        {
+            dashboard.DrawScope(renderer.Renderer, thetaBuffer.Span());
+        };
+
+    StartLoop(renderer, gameState, game, updateFunction, renderFunction, resetFunction);
+}
+
 /*
 static void StartExp(const Renderer& renderer, CartPole& game, std::mt19937& rng)
 {
@@ -544,7 +613,8 @@ int main(int argc, char* argv[])
     GameState gameState;
 
     //StartTrainingBetter(renderer, gameState, game, rng);
-    StartSim(renderer, gameState, game, rng);
+    //StartSim(renderer, gameState, game, rng);
+    StartExp(renderer, gameState, game, rng);
 
     StopSDL(renderer);
     
