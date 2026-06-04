@@ -222,13 +222,14 @@ static Scalar ComputeFitness(const CartPole& game, const EvolutionUnit& unit)
 }
 
 static void StartLoop(const Renderer& renderer, GameState& gameState, CartPole& game,
-    std::function<void()> updateFunction,
+    std::function<void(uint64_t frameIndex)> updateFunction,
     std::function<void()> renderFunction,
     std::function<void()> resetFunction)
 {
     resetFunction();
 
     double lastFrameTime = 0.0;
+    uint64_t frameIndex = 0;
     while (!gameState.Quit)
     {
         Frame frame = {};
@@ -244,7 +245,8 @@ static void StartLoop(const Renderer& renderer, GameState& gameState, CartPole& 
             resetFunction();
         }
 
-        updateFunction();
+        updateFunction(frameIndex);
+        frameIndex++;
 
         if (gameState.Render)
         {
@@ -336,7 +338,7 @@ static void StartTrainingBetter(const Renderer& renderer, GameState& gameState, 
             units = std::move(nextUnits);
         };
 
-    auto updateFunction = [&]()
+    auto updateFunction = [&](uint64_t frameIndex)
         {
             std::for_each(std::execution::par, units.begin(), units.end(), [&game, &gameState](EvolutionUnit& unit)
                 {
@@ -405,14 +407,13 @@ static void StartSim(const Renderer& renderer, GameState& gameState, CartPole& g
 
     resetFunction();
 
-    auto updateFunction = [&]()
+    auto updateFunction = [&](uint64_t frameIndex)
         {
             const std::array<Scalar, INPUT_COUNT> input = game.GetInputs(currentPlayerIndex);
             std::array<Scalar, OUTPUT_COUNT> output = {};
             network.Evaluate(input, output);
-
-            double totalForce = std::clamp(output[0], 0.0, 1.0) - std::clamp(output[1], 0.0, 1.0);
-            game.SetForce(currentPlayerIndex, totalForce);
+            //if (frameIndex % 6 == 0)
+                game.SetForce(currentPlayerIndex, output[0]);
 
             const CartPole::PhysicsState& state = game.GetState(currentPlayerIndex);
             thetaBuffer.Push(state.Theta);
@@ -542,8 +543,8 @@ int main(int argc, char* argv[])
 
     GameState gameState;
 
-    StartTrainingBetter(renderer, gameState, game, rng);
-    //StartSim(renderer, gameState, game, rng);
+    //StartTrainingBetter(renderer, gameState, game, rng);
+    StartSim(renderer, gameState, game, rng);
 
     StopSDL(renderer);
     

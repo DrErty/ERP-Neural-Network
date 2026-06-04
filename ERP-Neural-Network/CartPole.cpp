@@ -15,7 +15,7 @@ uint32_t CartPole::AddPlayer(bool display, std::mt19937& rng)
     const uint32_t playerIndex = static_cast<uint32_t>(m_Players.size());
     Player player;
     std::uniform_real_distribution<double> distribution(-1.0, 1.0);
-    if (playerIndex % 2 == 0)
+    if (playerIndex % 2 != 0)
     {
         player.State.Theta = g_PI / 8.0 * distribution(rng);
     }
@@ -42,6 +42,8 @@ void CartPole::SetForce(uint32_t playerIndex, Scalar strength)
 
     Player& player = m_Players[playerIndex];
     if (!player.Alive) return;
+
+    const PhysicsState& state = player.State;
     
     player.PendingForce = std::clamp(strength, Scalar(-1.0), Scalar(1.0)) * FORCE_MAGNITUDE;
 }
@@ -98,6 +100,8 @@ bool CartPole::IsTerminal(const PhysicsState& state) const
 
 void CartPole::Step(Scalar dt)
 {
+    dt /= Scalar(2.0);
+
     if (m_Done) return;
 
     const double physDt = static_cast<double>(dt) / static_cast<double>(PHYS_STEPS);

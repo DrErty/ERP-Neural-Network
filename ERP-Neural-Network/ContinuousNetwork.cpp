@@ -69,8 +69,12 @@ Scalar ContinuousNetwork::Activation(Scalar x)
     //if (x < 0.0)
     //    return 0.0;
     //
-    //return x;
-    return std::tanh(x) * 1000.0;
+    //return x * 1000.0;
+    //return std::tanh(std::clamp(x, -1.0, 1.0) * 1000.0);
+    if (x < 0.0)
+        return -1.0;
+
+    return 1.0;
 }
 
 Scalar ContinuousNetwork::OutputActivation(Scalar x)
