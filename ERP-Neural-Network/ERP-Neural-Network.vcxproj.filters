@@ -87,4 +87,7 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Arduino\SecondaryInterface\SecondaryInterface.ino" />
+  </ItemGroup>
 </Project>
