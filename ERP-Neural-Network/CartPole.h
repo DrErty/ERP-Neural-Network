@@ -17,7 +17,7 @@ public:
 
     CartPole(SDL_Renderer* renderer, uint32_t gameHeight = Drawer::DEFAULT_WINDOW_HEIGHT, uint32_t gameWidth = Drawer::DEFAULT_WINDOW_WIDTH);
 
-    uint32_t AddPlayer(bool display, std::mt19937& rng);
+    uint32_t AddPlayer(bool display, std::mt19937& rng, uint32_t generation);
 
     void SetForce(uint32_t playerIndex, Scalar strength);
     std::array<Scalar, INPUT_COUNT> GetInputs(uint32_t playerIndex) const;

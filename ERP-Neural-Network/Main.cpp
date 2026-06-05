@@ -327,7 +327,7 @@ static void StartTrainingBetter(const Renderer& renderer, GameState& gameState, 
                 std::mt19937 playerRng(HashSeed(gameState.Generation, 0));
                 for (uint32_t idx = 0; idx < MAX_EVALUTIONS_PER_GENOME; idx++)
                 {
-                    const uint32_t playerIndex = game.AddPlayer(unitIndex == 0, playerRng);
+                    const uint32_t playerIndex = game.AddPlayer(unitIndex == 0, playerRng, 0);
                     unit.PlayerIndices[idx] = playerIndex;
 
                     unit.Networks[idx].SetFromGenome(unit.Genome);
@@ -402,10 +402,8 @@ static void StartSim(const Renderer& renderer, GameState& gameState, CartPole& g
 
             game.Reset();
 
-            currentPlayerIndex = game.AddPlayer(true, playerRng);
+            currentPlayerIndex = game.AddPlayer(true, playerRng, 0);
         };
-
-    resetFunction();
 
     auto updateFunction = [&](uint64_t frameIndex)
         {
@@ -433,6 +431,7 @@ static void StartExp(const Renderer& renderer, GameState& gameState, CartPole& g
     Dashboard dashboard;
 
     RingBuffer thetaBuffer;
+    RingBuffer timeBuffer;
 
     uint32_t currentPlayerIndex = 0;
 
@@ -440,18 +439,29 @@ static void StartExp(const Renderer& renderer, GameState& gameState, CartPole& g
     std::mt19937 playerRng(0);
 
     serialib serial;
-    serial.openDevice("COM4", 115200);
+    serial.openDevice("COM3", 115200);
 
     auto resetFunction = [&]()
         {
+            if (thetaBuffer.Full() and timeBuffer.Full())
+            {
+                std::string output;
+                output += "Data\\Meting";
+                output += std::to_string(gameState.Generation);
+                output += ".txt";
+                IO::SaveCsv(output.c_str(), { "Time", "Theta" }, timeBuffer.Span(), thetaBuffer.Span());
+                std::cout << "Saving file to: " << output << "\n";
+            }
+
             thetaBuffer.Clear();
+            timeBuffer.Clear();
 
             game.Reset();
 
-            currentPlayerIndex = game.AddPlayer(true, playerRng);
-        };
+            currentPlayerIndex = game.AddPlayer(true, playerRng, gameState.Generation);
 
-    resetFunction();
+            gameState.Generation += 1;
+        };
 
     auto updateFunction = [&](uint64_t frameIndex)
         {
@@ -473,7 +483,7 @@ static void StartExp(const Renderer& renderer, GameState& gameState, CartPole& g
 
                 if (strncmp(buff.data(), "Error", 5) == 0)
                 {
-                    std::cout << buff.data();
+                    //std::cout << buff.data();
                 }
                 else
                 {
@@ -486,7 +496,16 @@ static void StartExp(const Renderer& renderer, GameState& gameState, CartPole& g
             }
 
             const CartPole::PhysicsState& state = game.GetState(currentPlayerIndex);
-            thetaBuffer.Push(state.Theta);
+            if (!thetaBuffer.IsFull() and !timeBuffer.IsFull())
+            {
+                thetaBuffer.Push(state.Theta);
+                timeBuffer.Push(game.GetSimTime());
+            }
+            else
+            {
+                resetFunction();
+            }
+
         };
 
     auto renderFunction = [&]()

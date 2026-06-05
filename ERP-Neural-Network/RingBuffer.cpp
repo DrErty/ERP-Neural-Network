@@ -20,6 +20,11 @@ void RingBuffer::Clear()
     m_Count = 0;
 }
 
+bool RingBuffer::IsFull()
+{
+    return m_Count == CAPACITY;
+}
+
 std::span<const Scalar> RingBuffer::Span()
 {
     if (m_Count == CAPACITY && m_Head != 0)

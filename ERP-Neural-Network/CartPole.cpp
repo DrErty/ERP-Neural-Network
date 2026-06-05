@@ -10,20 +10,20 @@ CartPole::CartPole(SDL_Renderer* renderer, uint32_t gameHeight, uint32_t gameWid
 {
 }
 
-uint32_t CartPole::AddPlayer(bool display, std::mt19937& rng)
+uint32_t CartPole::AddPlayer(bool display, std::mt19937& rng, uint32_t generation)
 {
     const uint32_t playerIndex = static_cast<uint32_t>(m_Players.size());
     Player player;
-    std::uniform_real_distribution<double> distribution(-1.0, 1.0);
-    if (playerIndex % 2 != 0)
-    {
-        player.State.Theta = g_PI / 8.0 * distribution(rng);
-    }
-    else
-    {
-        player.State.Theta = g_PI * (1.0 + 0.1 * distribution(rng));
-    }
+    //std::uniform_real_distribution<double> distribution(-1.0, 1.0);
+
+    Scalar range = static_cast<Scalar>(generation) / 9.0;
+    range *= 2.0;
+    range -= 1.0;
+
+    player.State.Theta = g_PI * (range) / 6.0;
     player.Display = display;
+
+    player.State.Theta = g_PI * 0.9;
 
     if (playerIndex == 0)
     {
