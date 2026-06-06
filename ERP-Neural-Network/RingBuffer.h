@@ -10,7 +10,6 @@ public:
     void Push(Scalar value);
     void Push(std::span<const Scalar> values);
     void Clear();
-    bool IsFull();
 
     std::size_t Size() const { return m_Count; }
     bool Empty() const { return m_Count == 0; }

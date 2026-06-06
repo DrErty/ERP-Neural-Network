@@ -224,7 +224,7 @@ static Scalar ComputeFitness(const CartPole& game, const EvolutionUnit& unit)
 static void StartLoop(const Renderer& renderer, GameState& gameState, CartPole& game,
     std::function<void(uint64_t frameIndex)> updateFunction,
     std::function<void()> renderFunction,
-    std::function<void()> resetFunction)
+    std::function<bool()> resetFunction)
 {
     resetFunction();
 
@@ -242,7 +242,8 @@ static void StartLoop(const Renderer& renderer, GameState& gameState, CartPole& 
         if (game.IsDone() || gameState.Skip || game.GetSimTime() > MAX_GAME_TIME)
         {
             gameState.Skip = false;
-            resetFunction();
+            if (resetFunction())
+                gameState.Quit = true;
         }
 
         updateFunction(frameIndex);
@@ -259,20 +260,60 @@ static void StartLoop(const Renderer& renderer, GameState& gameState, CartPole& 
     }
 }
 
+struct MeasurementBuffers
+{
+    RingBuffer TimeBuffer;
+    RingBuffer ThetaBuffer;
+
+    bool IsFull() const
+    {
+        return TimeBuffer.Full();
+    }
+
+    void Push(Scalar time, Scalar theta)
+    {
+        TimeBuffer.Push(time);
+        ThetaBuffer.Push(theta);
+    }
+
+    void Clear()
+    {
+        ThetaBuffer.Clear();
+        TimeBuffer.Clear();
+    }
+
+    void SaveToFile(std::string_view filePath, uint32_t generation)
+    {
+        if (IsFull())
+        {
+            std::string outputFilePath;
+            outputFilePath += filePath;
+            outputFilePath += std::to_string(generation);
+            outputFilePath += ".txt";
+            IO::SaveCsv(outputFilePath.c_str(), { "Time", "Theta" }, TimeBuffer.Span(), ThetaBuffer.Span());
+            std::cout << "Saving file to: " << outputFilePath << "\n";
+        }
+        else
+        {
+            std::cout << "Skipping saving to file, buffer not full.\n";
+        }
+    }
+};
+
 static void StartTrainingBetter(const Renderer& renderer, GameState& gameState, CartPole& game, std::mt19937& rng)
 {
     Dashboard dashboard;
 
-    RingBuffer thetaBuffer;
+    MeasurementBuffers buffers;
 
     std::vector<EvolutionUnit> units;
     units.reserve(MAX_INDIVIDUALS);
 
     std::vector<double> history;
 
-    auto resetFunction = [&]()
+    auto resetFunction = [&]() -> bool
         {
-            thetaBuffer.Clear();
+            buffers.Clear();
 
             std::sort(units.begin(), units.end(), [&](const EvolutionUnit& a, const EvolutionUnit& b)
                 {
@@ -336,6 +377,8 @@ static void StartTrainingBetter(const Renderer& renderer, GameState& gameState, 
 
             // TODO: Move needed?
             units = std::move(nextUnits);
+
+            return false;
         };
 
     auto updateFunction = [&](uint64_t frameIndex)
@@ -356,13 +399,13 @@ static void StartTrainingBetter(const Renderer& renderer, GameState& gameState, 
             if (units.size() > 0)
             {
                 const CartPole::PhysicsState& state = game.GetState(units[0].PlayerIndices[0]);
-                thetaBuffer.Push(state.Theta);
+                buffers.Push(game.GetSimTime(), state.Theta);
             }
         };
     
     auto renderFunction = [&]()
         {
-            dashboard.DrawScope(renderer.Renderer, thetaBuffer.Span());
+            dashboard.DrawScope(renderer.Renderer, buffers.ThetaBuffer.Span());
 
             if (units.size() > 0)
             {
@@ -373,14 +416,17 @@ static void StartTrainingBetter(const Renderer& renderer, GameState& gameState, 
     StartLoop(renderer, gameState, game, updateFunction, renderFunction, resetFunction);
 
     if (units.size() > 0)
+    {
         IO::SaveGenome(units[0].Genome, FILE_PATH);
+        std::cout << "Saving genome to file at: " << FILE_PATH << "\n";
+    }
 }
 
 static void StartSim(const Renderer& renderer, GameState& gameState, CartPole& game, std::mt19937& rng)
 {
     Dashboard dashboard;
 
-    RingBuffer thetaBuffer;
+    MeasurementBuffers buffers;
 
     IO::GenomeLoadResult genomeLoadResult = IO::LoadGenome(FILE_PATH);
     if (!genomeLoadResult)
@@ -396,13 +442,25 @@ static void StartSim(const Renderer& renderer, GameState& gameState, CartPole& g
     // TODO: Bad RNG
     std::mt19937 playerRng(0);
 
-    auto resetFunction = [&]()
+    auto resetFunction = [&]() -> bool
         {
-            thetaBuffer.Clear();
+            if (gameState.Generation <= MAX_MEASUREMENTS)
+            {
+                buffers.SaveToFile("Data\\SIM\\Meting", gameState.Generation);
+            }
+            else
+            {
+                return true;
+            }
+            buffers.Clear();
 
             game.Reset();
 
-            currentPlayerIndex = game.AddPlayer(true, playerRng, 0);
+            currentPlayerIndex = game.AddPlayer(true, playerRng, gameState.Generation);
+
+            gameState.Generation += 1;
+
+            return false;
         };
 
     auto updateFunction = [&](uint64_t frameIndex)
@@ -410,16 +468,22 @@ static void StartSim(const Renderer& renderer, GameState& gameState, CartPole& g
             const std::array<Scalar, INPUT_COUNT> input = game.GetInputs(currentPlayerIndex);
             std::array<Scalar, OUTPUT_COUNT> output = {};
             network.Evaluate(input, output);
-            //if (frameIndex % 6 == 0)
-                game.SetForce(currentPlayerIndex, output[0]);
+            game.SetForce(currentPlayerIndex, output[0]);
 
             const CartPole::PhysicsState& state = game.GetState(currentPlayerIndex);
-            thetaBuffer.Push(state.Theta);
+            if (!buffers.IsFull())
+            {
+                buffers.Push(game.GetSimTime(), state.Theta);
+            }
+            else
+            {
+                resetFunction();
+            }
         };
 
     auto renderFunction = [&]()
         {
-            dashboard.DrawScope(renderer.Renderer, thetaBuffer.Span());
+            dashboard.DrawScope(renderer.Renderer, buffers.ThetaBuffer.Span());
             dashboard.DrawNetwork(renderer.Renderer, genomeLoadResult.Genome);
         };
 
@@ -430,8 +494,7 @@ static void StartExp(const Renderer& renderer, GameState& gameState, CartPole& g
 {
     Dashboard dashboard;
 
-    RingBuffer thetaBuffer;
-    RingBuffer timeBuffer;
+    MeasurementBuffers buffers;
 
     uint32_t currentPlayerIndex = 0;
 
@@ -441,26 +504,25 @@ static void StartExp(const Renderer& renderer, GameState& gameState, CartPole& g
     serialib serial;
     serial.openDevice("COM3", 115200);
 
-    auto resetFunction = [&]()
+    auto resetFunction = [&]() -> bool
         {
-            if (thetaBuffer.Full() and timeBuffer.Full())
+            if (gameState.Generation <= MAX_MEASUREMENTS)
             {
-                std::string output;
-                output += "Data\\Meting";
-                output += std::to_string(gameState.Generation);
-                output += ".txt";
-                IO::SaveCsv(output.c_str(), { "Time", "Theta" }, timeBuffer.Span(), thetaBuffer.Span());
-                std::cout << "Saving file to: " << output << "\n";
+                buffers.SaveToFile("Data\\EXP\\Meting", gameState.Generation);
             }
-
-            thetaBuffer.Clear();
-            timeBuffer.Clear();
+            else
+            {
+                return true;
+            }
+            buffers.Clear();
 
             game.Reset();
 
             currentPlayerIndex = game.AddPlayer(true, playerRng, gameState.Generation);
 
             gameState.Generation += 1;
+
+            return false;
         };
 
     auto updateFunction = [&](uint64_t frameIndex)
@@ -479,7 +541,7 @@ static void StartExp(const Renderer& renderer, GameState& gameState, CartPole& g
             while (serial.available() > 0)
             {
                 // TODO: -1 needed?
-                serial.readString(buff.data(), '\n', buff.size() - 1);
+                serial.readString(buff.data(), '\n', static_cast<uint32_t>(buff.size() - 1));
 
                 if (strncmp(buff.data(), "Error", 5) == 0)
                 {
@@ -496,131 +558,23 @@ static void StartExp(const Renderer& renderer, GameState& gameState, CartPole& g
             }
 
             const CartPole::PhysicsState& state = game.GetState(currentPlayerIndex);
-            if (!thetaBuffer.IsFull() and !timeBuffer.IsFull())
+            if (!buffers.IsFull())
             {
-                thetaBuffer.Push(state.Theta);
-                timeBuffer.Push(game.GetSimTime());
+                buffers.Push(game.GetSimTime(), state.Theta);
             }
             else
             {
                 resetFunction();
             }
-
         };
 
     auto renderFunction = [&]()
         {
-            dashboard.DrawScope(renderer.Renderer, thetaBuffer.Span());
+            dashboard.DrawScope(renderer.Renderer, buffers.ThetaBuffer.Span());
         };
 
     StartLoop(renderer, gameState, game, updateFunction, renderFunction, resetFunction);
 }
-
-/*
-static void StartExp(const Renderer& renderer, CartPole& game, std::mt19937& rng)
-{
-    std::vector<double> history;
-
-    Player player = {};
-
-    serialib serial;
-    serial.openDevice("COM3", 115200);
-
-    std::string rxBuffer;
-
-    std::mt19937 playerRng(0);
-
-    double timeStart = 0.0;
-    auto resetRound = [&]()
-        {
-            timeStart = 0.0;
-
-            game.Reset();
-
-            player.PlayerIndex = game.AddPlayer(true, playerRng);
-
-            for (uint32_t inputIndex = 0; inputIndex < INPUT_NEURON_COUNT; inputIndex++)
-                player.InputState[inputIndex].Reset();
-        };
-
-    resetRound();
-
-    double lastFrameTime = 0.0;
-    while (!gameState.Quit)
-    {
-        Frame frame = {};
-        if (gameState.Render)
-            frame = FrameStart(renderer);
-
-        HandleGameInputs(gameState);
-
-        timeStart += SIM_DT;
-
-        if (timeStart > 1.0)
-            game.Step(SIM_DT);
-
-        if (game.IsDone() || gameState.Skip || game.GetSimTime() > MAX_GAME_TIME)
-        {
-            gameState.Skip = false;
-            resetRound();
-        }
-
-        UpdateInputs(game, player);
-
-        for (uint32_t serialIdx = 0; serialIdx < SERIAL_SUBSTEPS; serialIdx++)
-        {
-            const double substepDeltaTime = SIM_DT / static_cast<double>(SERIAL_SUBSTEPS);
-
-            constexpr uint32_t bitCount = 8;
-            std::bitset<bitCount> spikedMask(0);
-            static_assert(INPUT_NEURON_COUNT <= bitCount);
-
-            auto updateInput = [&](uint32_t inputIndex)
-                {
-                    const uint32_t spikeCount = player.InputState[inputIndex].Update(substepDeltaTime);
-                    if (spikeCount > 1)
-                    {
-                        std::cout << "Critical error, SERIAL_SUBSTEPS is too low, skipping spikes.\n";
-                    }
-                    if (spikeCount > 0)
-                    {
-                        spikedMask[inputIndex] = true;
-                    }
-                };
-
-            for (uint32_t inputIdx = 0; inputIdx < INPUT_NEURON_COUNT; inputIdx++)
-                updateInput(inputIdx);
-            
-            if (serial.writeChar(static_cast<char>(spikedMask.to_ullong())) == -1)
-            {
-                std::cout << "Error writing to serial buffer, is the port connected?\n";
-            }
-
-            SerialReadToBuffer(serial, rxBuffer);
-            if (timeStart > 1.0)
-                for (uint32_t charIdx = 0; charIdx < rxBuffer.size(); charIdx++)
-                {
-                    const uint32_t outputIdx = rxBuffer[charIdx];
-                    std::cout << "Trigger: " << outputIdx << '\n';
-                    //if (outputIdx == 1)
-                    //game.Action(player.PlayerIndex, outputIdx - 23);
-                }
-
-            rxBuffer.clear();
-        }
-
-        if (gameState.Render)
-        {
-            game.Render();
-
-            std::vector<Individual> simIndividuals;
-            //DrawSidebar(renderer.Renderer, gameState.Generation, simIndividuals, game, history, 0.0, lastFrameTime);
-
-            lastFrameTime = FrameEnd(renderer, frame, gameState.SpeedUp);
-        }
-    }
-}
-*/
 
 int main(int argc, char* argv[])
 {
@@ -632,8 +586,8 @@ int main(int argc, char* argv[])
     GameState gameState;
 
     //StartTrainingBetter(renderer, gameState, game, rng);
-    //StartSim(renderer, gameState, game, rng);
-    StartExp(renderer, gameState, game, rng);
+    StartSim(renderer, gameState, game, rng);
+    //StartExp(renderer, gameState, game, rng);
 
     StopSDL(renderer);
     

@@ -89,5 +89,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Arduino\SecondaryInterface\SecondaryInterface.ino" />
+    <None Include="Arduino\ThirdInterface\ThirdInterface.ino" />
+    <None Include="Genome.csv" />
   </ItemGroup>
 </Project>

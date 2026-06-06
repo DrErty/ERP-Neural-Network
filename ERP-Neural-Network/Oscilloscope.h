@@ -28,8 +28,8 @@ private:
 
     float m_SizeX = 0.5f;
     float m_SizeY = 0.3f;
-    float m_CenterX = 1.0 - m_SizeX / 2.0f;
-    float m_CenterY = 1.0 - m_SizeY / 2.0f;
+    float m_CenterX = 1.0f - m_SizeX / 2.0f;
+    float m_CenterY = 1.0f - m_SizeY / 2.0f;
 
     bool  m_AutoScale = true;
     float m_RangeMin = -1.0f;

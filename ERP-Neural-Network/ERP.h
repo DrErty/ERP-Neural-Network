@@ -51,6 +51,8 @@ static constexpr Scalar MAX_OUTPUT_RATE_OFFSET = Scalar(20.0);
 static constexpr Scalar MIN_INPUT_RATE = Scalar(0.0);
 static constexpr Scalar MAX_INPUT_RATE = Scalar(60.0);
 
+static constexpr uint32_t MAX_MEASUREMENTS = 10;
+
 static uint32_t HashSeed(uint32_t generation, uint32_t slot)
 {
     uint32_t h = generation * 2654435761u + slot * 40503u + 0x9E3779B9u;

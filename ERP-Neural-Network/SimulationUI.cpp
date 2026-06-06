@@ -264,7 +264,7 @@ void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const std::vector<
 
             if (neuronIndex >= INPUT_NEURON_COUNT + HIDDEN_NEURON_COUNT)
             {
-                float frequency = baseNetwork.GetFrequency(neuronIndex - INPUT_NEURON_COUNT - HIDDEN_NEURON_COUNT);
+                Scalar frequency = baseNetwork.GetFrequency(neuronIndex - INPUT_NEURON_COUNT - HIDDEN_NEURON_COUNT);
                 std::string freq = std::to_string(frequency);
                 Drawer::DrawTextSlow(renderer, freq,
                     neuronScreenX[neuronIndex] - neuronRadius * 2,

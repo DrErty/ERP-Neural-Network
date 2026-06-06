@@ -14,16 +14,30 @@ uint32_t CartPole::AddPlayer(bool display, std::mt19937& rng, uint32_t generatio
 {
     const uint32_t playerIndex = static_cast<uint32_t>(m_Players.size());
     Player player;
-    //std::uniform_real_distribution<double> distribution(-1.0, 1.0);
+    std::uniform_real_distribution<double> distribution(-1.0, 1.0);
 
-    Scalar range = static_cast<Scalar>(generation) / 9.0;
-    range *= 2.0;
-    range -= 1.0;
+    if (true)
+    {
+        Scalar range = static_cast<Scalar>(generation) / static_cast<Scalar>(MAX_MEASUREMENTS - 1);
+        range *= 2.0;
+        range -= 1.0;
 
-    player.State.Theta = g_PI * (range) / 6.0;
+        player.State.Theta = g_PI * (range) / 6.0;
+        std::cout << "Starting angle: " << player.State.Theta << "\n";
+    }
+    else
+    {
+        if (playerIndex % 2 == 0)
+        {
+            player.State.Theta = g_PI * distribution(rng) / 6.0;
+        }
+        else
+        {
+            player.State.Theta = g_PI * (1.0 + 0.1 * distribution(rng));
+        }
+    }
+
     player.Display = display;
-
-    player.State.Theta = g_PI * 0.9;
 
     if (playerIndex == 0)
     {
