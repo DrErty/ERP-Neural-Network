@@ -94,10 +94,10 @@ static void SerialReadToBuffer(serialib& serial, std::string& buffer)
     }
 }
 
-static double CalculateDeltaTime(Uint64 start, Uint64 end)
+static Scalar CalculateDeltaTime(Uint64 start, Uint64 end)
 {
     Assert(end > start);
-    return static_cast<double>(end - start) / static_cast<double>(SDL_GetPerformanceFrequency());
+    return static_cast<Scalar>(end - start) / static_cast<Scalar>(SDL_GetPerformanceFrequency());
 }
 
 struct Frame
@@ -110,19 +110,19 @@ static Frame FrameStart(const Renderer& renderer)
     return { SDL_GetPerformanceCounter() };
 }
 
-static double FrameEnd(const Renderer& renderer, const Frame& frame, bool speedUp)
+static Scalar FrameEnd(const Renderer& renderer, const Frame& frame, bool speedUp)
 {
     SDL_RenderPresent(renderer.Renderer);
 
     {
         Uint64 currentTime = SDL_GetPerformanceCounter();
-        const double elapsedTime = CalculateDeltaTime(frame.Start, currentTime);
+        const Scalar elapsedTime = CalculateDeltaTime(frame.Start, currentTime);
         if ((elapsedTime < SIM_DT) && (!speedUp))
             SDL_Delay(static_cast<Uint32>((SIM_DT - elapsedTime) * 1000.0));
     }
 
     Uint64 currentTimeAfterDelay = SDL_GetPerformanceCounter();
-    const double elapsedTimeAfterDelay = CalculateDeltaTime(frame.Start, currentTimeAfterDelay);
+    const Scalar elapsedTimeAfterDelay = CalculateDeltaTime(frame.Start, currentTimeAfterDelay);
 
     return elapsedTimeAfterDelay;
 }
@@ -167,7 +167,7 @@ static void UpdateInputs(const CartPole& game, Player& player)
 {
     for (uint32_t inputIdx = 0; inputIdx < INPUT_NEURON_COUNT; inputIdx++)
     {
-        //double input = game.GetInput(player.PlayerIndex, inputIdx);
+        //Scalar input = game.GetInput(player.PlayerIndex, inputIdx);
         //player.InputState[inputIdx].SetValue(input);
     }
 }
@@ -185,7 +185,7 @@ static void UpdatePlayer(const CartPole& game, Player& player)
 
     for (uint32_t i = 0; i < NEURON_SUBSTEPS; i++)
     {
-        const double substepDeltaTime = SIM_DT / static_cast<double>(NEURON_SUBSTEPS);
+        const Scalar substepDeltaTime = SIM_DT / static_cast<Scalar>(NEURON_SUBSTEPS);
 
         player.Network.UpdateNetwork(substepDeltaTime);
     }
@@ -200,23 +200,23 @@ struct EvolutionUnit
 
 static Scalar ComputeFitness(const CartPole& game, const EvolutionUnit& unit)
 {
-    double totalGameFitness = 0.0;
+    Scalar totalGameFitness = Scalar(0.0);
     for (uint32_t idx = 0; idx < MAX_EVALUTIONS_PER_GENOME; idx++)
     {
-        const double fitness = game.PlayerFitness(unit.PlayerIndices[idx]);
+        const Scalar fitness = game.PlayerFitness(unit.PlayerIndices[idx]);
         totalGameFitness += fitness;
     }
 
-    double lowestFitness = std::numeric_limits<double>::max();
+    Scalar lowestFitness = std::numeric_limits<Scalar>::max();
     for (uint32_t idx = 0; idx < MAX_EVALUTIONS_PER_GENOME; idx++)
     {
-        const double fitness = game.PlayerFitness(unit.PlayerIndices[idx]);
+        const Scalar fitness = game.PlayerFitness(unit.PlayerIndices[idx]);
         if (fitness < lowestFitness)
             lowestFitness = fitness;
     }
 
-    constexpr double alpha = 0.75;
-    const double gameFitness = alpha * lowestFitness + (1.0 - alpha) * totalGameFitness / static_cast<double>(MAX_EVALUTIONS_PER_GENOME);
+    constexpr Scalar alpha = Scalar(0.75);
+    const Scalar gameFitness = alpha * lowestFitness + (Scalar(1.0) - alpha) * totalGameFitness / static_cast<Scalar>(MAX_EVALUTIONS_PER_GENOME);
 
     return gameFitness;
 }
@@ -228,7 +228,7 @@ static void StartLoop(const Renderer& renderer, GameState& gameState, CartPole& 
 {
     resetFunction();
 
-    double lastFrameTime = 0.0;
+    Scalar lastFrameTime = Scalar(0.0);
     uint64_t frameIndex = 0;
     while (!gameState.Quit)
     {
@@ -286,12 +286,15 @@ struct MeasurementBuffers
     {
         if (IsFull())
         {
-            std::string outputFilePath;
-            outputFilePath += filePath;
-            outputFilePath += std::to_string(generation);
-            outputFilePath += ".txt";
-            IO::SaveCsv(outputFilePath.c_str(), { "Time", "Theta" }, TimeBuffer.Span(), ThetaBuffer.Span());
-            std::cout << "Saving file to: " << outputFilePath << "\n";
+            StaticBuffer<char> buffer(1024);
+            StringBuilder stringBuilder(buffer);
+            stringBuilder.Concat(filePath);
+            stringBuilder.Concat(generation);
+            stringBuilder.Concat(".txt");
+            stringBuilder.Compile();
+
+            IO::SaveCsv(buffer.GetData(), {"Time", "Theta"}, TimeBuffer.Span(), ThetaBuffer.Span());
+            std::cout << "Saving file to: " << buffer.GetData() << "\n";
         }
         else
         {
@@ -309,7 +312,7 @@ static void StartTrainingBetter(const Renderer& renderer, GameState& gameState, 
     std::vector<EvolutionUnit> units;
     units.reserve(MAX_INDIVIDUALS);
 
-    std::vector<double> history;
+    std::vector<Scalar> history;
 
     auto resetFunction = [&]() -> bool
         {
@@ -329,7 +332,7 @@ static void StartTrainingBetter(const Renderer& renderer, GameState& gameState, 
                 std::cout << "Fitness: " << ComputeFitness(game, *lastBestUnit) << std::endl;
             }
 
-            const double bestFitness = lastBestUnit ? ComputeFitness(game, *lastBestUnit) : 0.0;
+            const Scalar bestFitness = lastBestUnit ? ComputeFitness(game, *lastBestUnit) : Scalar(0.0);
             if (units.size() > 0)
                 history.emplace_back(bestFitness);
 
@@ -528,29 +531,35 @@ static void StartExp(const Renderer& renderer, GameState& gameState, CartPole& g
     auto updateFunction = [&](uint64_t frameIndex)
         {
             const std::array<Scalar, INPUT_COUNT> inputs = game.GetInputs(currentPlayerIndex);
-            std::string serialData;
-            serialData += std::to_string(inputs[0]);
-            serialData += ',';
-            serialData += std::to_string(inputs[1]);
-            serialData += ',';
-            serialData += std::to_string(inputs[2]);
-            serialData += '\n';
-            serial.writeString(serialData.c_str());
 
-            std::array<char, 1024> buff = {};
+            {
+                StaticBuffer<char> serialString(1024);
+                StringBuilder stringBuilder(serialString);
+                stringBuilder.Concat(inputs[0]);
+                stringBuilder.Concat(',');
+                stringBuilder.Concat(inputs[1]);
+                stringBuilder.Concat(',');
+                stringBuilder.Concat(inputs[2]);
+                stringBuilder.Concat('\n');
+                stringBuilder.Compile();
+
+                serial.writeString(serialString.GetData());
+            }
+
+            StaticBuffer<char> buffer(1024);
             while (serial.available() > 0)
             {
                 // TODO: -1 needed?
-                serial.readString(buff.data(), '\n', static_cast<uint32_t>(buff.size() - 1));
+                serial.readString(buffer.GetData(), '\n', static_cast<uint32_t>(buffer.GetCount() - 1));
 
-                if (strncmp(buff.data(), "Error", 5) == 0)
+                if (strncmp(buffer.GetData(), "Error", 5) == 0)
                 {
-                    //std::cout << buff.data();
+                    //ERP_LOG(buffer.GetData());
                 }
                 else
                 {
-                    double out = 0.0;
-                    const auto [ptr, ec] = std::from_chars(buff.data(), buff.data() + buff.size(), out);
+                    Scalar out = Scalar(0.0);
+                    const auto [ptr, ec] = std::from_chars(buffer.GetData(), buffer.GetData() + buffer.GetCount(), out);
 
                     game.SetForce(currentPlayerIndex, out);
                     //std::cout << out << '\n';

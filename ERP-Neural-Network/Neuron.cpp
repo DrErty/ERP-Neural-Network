@@ -5,25 +5,25 @@ void NeuronParams::Print() const
     std::cout << "Params: " << "TauMem: " << TauMem << ", TauSyn: " << TauSyn << '\n';
 }
 
-void SpikeEncoder::SetValue(double value)
+void SpikeEncoder::SetValue(Scalar value)
 {
-    const double normalised = std::clamp(value, -1.0, 1.0);
-    m_CurrentRate = m_MinRate + (normalised + 1.0) / 2.0 * (m_MaxRate - m_MinRate);
+    const Scalar normalised = std::clamp(value, Scalar(-1.0), Scalar(1.0));
+    m_CurrentRate = m_MinRate + (normalised + Scalar(1.0)) / Scalar(2.0) * (m_MaxRate - m_MinRate);
 }
 
-void SpikeEncoder::SetMaxRate(double maxRate)
+void SpikeEncoder::SetMaxRate(Scalar maxRate)
 {
     m_MaxRate = maxRate;
 }
 
-void SpikeEncoder::SetMinRate(double minRate)
+void SpikeEncoder::SetMinRate(Scalar minRate)
 {
     m_MinRate = minRate;
 }
 
-uint32_t SpikeEncoder::Update(double dt)
+uint32_t SpikeEncoder::Update(Scalar dt)
 {
-    if (m_CurrentRate <= 0.0f) return 0;
+    if (m_CurrentRate <= Scalar(0.0)) return 0;
     m_Phase += m_CurrentRate * dt;
 
     const uint32_t rounded = static_cast<uint32_t>(m_Phase);
@@ -61,7 +61,7 @@ NeuronIdx GetNeuronIdxFromOutputIdx(NeuronIdx outputIdx)
     return outputIdx + INPUT_NEURON_COUNT + HIDDEN_NEURON_COUNT;
 }
 
-bool ConnectNeurons(NeuralNetwork& network, int8_t inputNeuron, int8_t outputNeuron, double weight)
+bool ConnectNeurons(NeuralNetwork& network, int8_t inputNeuron, int8_t outputNeuron, Scalar weight)
 {
     int32_t outputSyn = -1;
     for (uint32_t i = 0; i < MAX_OUTPUTS; i++)
@@ -95,7 +95,7 @@ bool ConnectNeurons(NeuralNetwork& network, int8_t inputNeuron, int8_t outputNeu
     return true;
 }
 
-double NeuralNetwork::GetFrequency(NeuronIdx outputIdx) const
+Scalar NeuralNetwork::GetFrequency(NeuronIdx outputIdx) const
 {
     uint32_t count = 0;
     for (auto& trigger : RecentTriggers)
@@ -106,7 +106,7 @@ double NeuralNetwork::GetFrequency(NeuronIdx outputIdx) const
     return count / FREQUENCY_TIME_WINDOW;
 }
 
-void NeuralNetwork::TriggerConnected(int8_t neuronIndex, uint32_t count, double duration)
+void NeuralNetwork::TriggerConnected(int8_t neuronIndex, uint32_t count, Scalar duration)
 {
     Neuron& neuron = Neurons[neuronIndex];
     for (uint32_t j = 0; j < MAX_OUTPUTS; j++)
@@ -116,13 +116,13 @@ void NeuralNetwork::TriggerConnected(int8_t neuronIndex, uint32_t count, double 
 
         int8_t inputSyn = neuron.OutputConnectionsSynapseIdx[j];
 
-        Assert((duration / PULSE_TIME) * static_cast<double>(count) >= 0.0);
+        Assert((duration / PULSE_TIME) * static_cast<Scalar>(count) >= Scalar(0.0));
 
-        I_in[toIndex][inputSyn] += (duration / PULSE_TIME) * static_cast<double>(count);
+        I_in[toIndex][inputSyn] += (duration / PULSE_TIME) * static_cast<Scalar>(count);
     }
 }
 
-void NeuralNetwork::UpdateNetwork(double dt)
+void NeuralNetwork::UpdateNetwork(Scalar dt)
 {
     // TODO: uses fact that triggers are ordered.
     uint32_t removeCount = 0;
@@ -144,25 +144,24 @@ void NeuralNetwork::UpdateNetwork(double dt)
     {
         if (InactiveNeurons[neuronIdx]) continue;
 
-        double I_syn = 0.0;
+        Scalar I_syn = Scalar(0.0);
         for (uint32_t j = 0; j < MAX_INPUTS; j++)
         {
             I_in[neuronIdx][j] *= DecayRates[neuronIdx];
             I_syn += Weights[neuronIdx][j] * I_in[neuronIdx][j];
-            //Assert(Weights[neuronIdx][j] * I_in[neuronIdx][j] >= 0.0);
+            //Assert(Weights[neuronIdx][j] * I_in[neuronIdx][j] >= Scalar(0.0));
         }
 
         RefracTime[neuronIdx] -= dt;
-        if (RefracTime[neuronIdx] <= 0.0)
+        if (RefracTime[neuronIdx] <= Scalar(0.0))
         {
-            const double dV = (-(VMem[neuronIdx] - Params[neuronIdx].VLeak) + I_syn) / Params[neuronIdx].TauMem;
-            Assert(Params[neuronIdx].TauMem >= 0.0);
-            Assert(Params[neuronIdx].VLeak >= 0.0);
-            //Assert(I_syn >= 0.0);
+            const Scalar dV = (-(VMem[neuronIdx] - Params[neuronIdx].VLeak) + I_syn) / Params[neuronIdx].TauMem;
+            Assert(Params[neuronIdx].TauMem >= Scalar(0.0));
+            Assert(Params[neuronIdx].VLeak >= Scalar(0.0));
             VMem[neuronIdx] += dV * dt;
-            if (VMem[neuronIdx] < 0.0)
+            if (VMem[neuronIdx] < Scalar(0.0))
             {
-                VMem[neuronIdx] = 0.0;
+                VMem[neuronIdx] = Scalar(0.0);
             }
         }
 
@@ -170,13 +169,13 @@ void NeuralNetwork::UpdateNetwork(double dt)
         if (VMem[neuronIdx] >= Params[neuronIdx].VThreshold)
         {
             TriggerConnected(neuronIdx, 1);
-            VMem[neuronIdx] = 0.0;
+            VMem[neuronIdx] = Scalar(0.0);
             RefracTime[neuronIdx] = REFRAC_TIME;
 
             if (neuronIdx >= INPUT_NEURON_COUNT + HIDDEN_NEURON_COUNT)
             {
                 NeuronIdx outputIdx = neuronIdx - INPUT_NEURON_COUNT - HIDDEN_NEURON_COUNT;
-                RecentTriggers.emplace_back(0.0, outputIdx);
+                RecentTriggers.emplace_back(Scalar(0.0), outputIdx);
             }
         }
     }
@@ -184,7 +183,7 @@ void NeuralNetwork::UpdateNetwork(double dt)
 
 void NeuralNetwork::SetParams(uint32_t neuronIndex, const NeuronParams& params)
 {
-    constexpr double dt = SIM_DT / static_cast<double>(NEURON_SUBSTEPS);
+    constexpr Scalar dt = SIM_DT / static_cast<Scalar>(NEURON_SUBSTEPS);
 
     Params[neuronIndex] = params;
     DecayRates[neuronIndex] = std::exp(-dt / params.TauSyn);

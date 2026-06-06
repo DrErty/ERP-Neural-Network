@@ -33,7 +33,7 @@ public:
     void Render();
 
     bool IsDone() const { return m_Done; }
-    double GetSimTime() const { return m_SimTime; }
+    Scalar GetSimTime() const { return m_SimTime; }
 
     void Reset();
     void KillPlayer(uint32_t playerIndex);
@@ -62,22 +62,22 @@ private:
     {
         PhysicsState State;
         bool HeldUp = false;
-        Scalar Fitness = 0.0;
+        Scalar Fitness = Scalar(0.0);
         Scalar PendingForce = 0.0f;
         bool Alive = true;
         bool Display = true;
     };
 
-    PhysicsState StepPhysics(const PhysicsState& state, double force, double dt) const;
+    PhysicsState StepPhysics(const PhysicsState& state, Scalar force, Scalar dt) const;
     bool IsTerminal(const PhysicsState& state) const;
 
     const Player* FindBestPlayer() const;
-    float WorldToScreenX(double worldX, double cameraX) const;
+    float WorldToScreenX(Scalar worldX, Scalar cameraX) const;
     float GetTrackY() const;
 
     void DrawBackground() const;
-    void DrawTrack(double cameraX) const;
-    void DrawPlayer(const Player& player, bool isBest, double cameraX) const;
+    void DrawTrack(Scalar cameraX) const;
+    void DrawPlayer(const Player& player, bool isBest, Scalar cameraX) const;
 
     SDL_Renderer* m_Renderer;
 
@@ -88,8 +88,8 @@ private:
     std::vector<Player*> m_AlivePlayers;
     uint32_t m_AliveCount = 0;
     bool m_Done = false;
-    Scalar m_SimTime = 0.0;
+    Scalar m_SimTime = Scalar(0.0);
 
-    Scalar m_CameraX = 0.0;
-    Scalar m_CameraSpeed = 0.0;
+    Scalar m_CameraX = Scalar(0.0);
+    Scalar m_CameraSpeed = Scalar(0.0);
 };

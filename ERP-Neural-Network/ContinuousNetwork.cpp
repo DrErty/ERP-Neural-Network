@@ -26,13 +26,13 @@ void NetworkGenome::Mutate(std::mt19937& rng)
         b = std::clamp(b + step(rng), -WEIGHT_LIMIT, WEIGHT_LIMIT);
     }
 
-    std::normal_distribution<double> n01(0.0, 1.0);
+    std::normal_distribution<Scalar> n01(Scalar(0.0), Scalar(1.0));
 
-    const double n = static_cast<double>(std::max<size_t>(1, WEIGHT_COUNT));
-    const double tauGlobal = 1.0 / std::sqrt(2.0 * n);
-    const double tauLocal = 1.0 / std::sqrt(2.0 * std::sqrt(n));
+    const Scalar n = static_cast<Scalar>(std::max<size_t>(1, WEIGHT_COUNT));
+    const Scalar tauGlobal = Scalar(1.0) / std::sqrt(Scalar(2.0) * n);
+    const Scalar tauLocal = Scalar(1.0) / std::sqrt(Scalar(2.0) * std::sqrt(n));
 
-    const double globalFactor = std::exp(tauGlobal * n01(rng));
+    const Scalar globalFactor = std::exp(tauGlobal * n01(rng));
 
     for (auto& sigma : WeightsSigma)
     {
@@ -66,11 +66,6 @@ void ContinuousNetwork::SetFromGenome(const NetworkGenome& genome)
 // ReLu
 Scalar ContinuousNetwork::Activation(Scalar x)
 {
-    //if (x < 0.0)
-    //    return 0.0;
-    //
-    //return x * 1000.0;
-    //return std::tanh(std::clamp(x, -1.0, 1.0) * 1000.0);
     if (x < 0.0)
         return -1.0;
 
@@ -80,7 +75,6 @@ Scalar ContinuousNetwork::Activation(Scalar x)
 Scalar ContinuousNetwork::OutputActivation(Scalar x)
 {
     return Activation(x);
-    //return x;
 }
 
 void ContinuousNetwork::Evaluate(const std::array<Scalar, INPUT_COUNT>& input, std::array<Scalar, OUTPUT_COUNT>& output) const

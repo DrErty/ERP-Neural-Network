@@ -51,7 +51,12 @@ namespace Drawer
         for (int32_t dy = -radius; dy <= radius; ++dy)
         {
             const float dx = std::sqrt((float)(radius * radius - dy * dy));
-            SDL_RenderLine(renderer, cx - dx, cy + (float)dy, cx + dx, cy + (float)dy);
+            RenderLine(renderer, cx - dx, cy + (float)dy, cx + dx, cy + (float)dy);
         }
+    }
+
+    void RenderLine(SDL_Renderer* renderer, float x1, float y1, float x2, float y2)
+    {
+        SDL_RenderLine(renderer, x1, y1, x2, y2);
     }
 }

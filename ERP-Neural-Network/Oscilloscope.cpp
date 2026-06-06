@@ -58,9 +58,9 @@ void Oscilloscope::Draw(SDL_Renderer* renderer, std::span<const Scalar> samples)
     for (int i = 1; i < divs; ++i)
     {
         const float gx = left + pxW * static_cast<float>(i) / divs;
-        SDL_RenderLine(renderer, gx, top, gx, bottom);
+        Drawer::RenderLine(renderer, gx, top, gx, bottom);
         const float gy = top + pxH * static_cast<float>(i) / divs;
-        SDL_RenderLine(renderer, left, gy, right, gy);
+        Drawer::RenderLine(renderer, left, gy, right, gy);
     }
 
     float lo = m_RangeMin;
@@ -94,7 +94,7 @@ void Oscilloscope::Draw(SDL_Renderer* renderer, std::span<const Scalar> samples)
     {
         Drawer::SetColor(renderer, m_ZeroColor);
         const float zy = valueToPxY(0.0f);
-        SDL_RenderLine(renderer, left, zy, right, zy);
+        Drawer::RenderLine(renderer, left, zy, right, zy);
     }
 
     Drawer::SetColor(renderer, m_TraceColor);
@@ -102,7 +102,7 @@ void Oscilloscope::Draw(SDL_Renderer* renderer, std::span<const Scalar> samples)
     if (n == 1)
     {
         const float y = valueToPxY(static_cast<float>(samples[0]));
-        SDL_RenderLine(renderer, left, y, right, y);
+        Drawer::RenderLine(renderer, left, y, right, y);
     }
     else if (n >= 2)
     {
@@ -113,7 +113,7 @@ void Oscilloscope::Draw(SDL_Renderer* renderer, std::span<const Scalar> samples)
             const float t = static_cast<float>(i) / static_cast<float>(n - 1);
             const float x = left + t * pxW;
             const float y = valueToPxY(static_cast<float>(samples[i]));
-            SDL_RenderLine(renderer, prevX, prevY, x, y);
+            Drawer::RenderLine(renderer, prevX, prevY, x, y);
             prevX = x;
             prevY = y;
         }
@@ -130,7 +130,7 @@ void Oscilloscope::Draw(SDL_Renderer* renderer, std::span<const Scalar> samples)
         if (!samples.empty())
         {
             char buf[32];
-            std::snprintf(buf, sizeof(buf), "%.3f", static_cast<double>(samples.back()));
+            std::snprintf(buf, sizeof(buf), "%.3f", static_cast<Scalar>(samples.back()));
             Drawer::DrawTextSlow(renderer, buf, right - 56.0f, top + 4.0f, m_LabelColor, Drawer::g_FontSmall, false);
         }
     }

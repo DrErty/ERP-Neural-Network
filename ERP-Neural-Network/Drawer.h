@@ -27,4 +27,5 @@ namespace Drawer
 	void FillRect(SDL_Renderer* renderer, float x, float y, float w, float h);
 	void DrawRect(SDL_Renderer* renderer, float x, float y, float w, float h);
 	void DrawCircle(SDL_Renderer* renderer, float cx, float cy, float rad);
+	void RenderLine(SDL_Renderer* renderer, float x1, float y1, float x2, float y2);
 };

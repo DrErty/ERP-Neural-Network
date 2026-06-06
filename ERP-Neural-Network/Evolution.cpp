@@ -120,22 +120,22 @@ void Genome::Print()
 
 void Genome::Mutate(std::mt19937& rng)
 {
-    std::uniform_real_distribution<double> uniformDistribution(0.0, 1.0);
-    std::normal_distribution<double> n01(0.0, 1.0);
+    std::uniform_real_distribution<Scalar> uniformDistribution(Scalar(0.0), Scalar(1.0));
+    std::normal_distribution<Scalar> n01(Scalar(0.0), Scalar(1.0));
 
     if (true)
     {
-        const double tau = 1.0 / std::sqrt(2.0 * std::max<size_t>(1, Connections.size()));
+        const Scalar tau = Scalar(1.0) / std::sqrt(Scalar(2.0) * std::max<size_t>(1, Connections.size()));
         Sigma *= std::exp(tau * n01(rng));
-        Sigma = std::clamp(Sigma, 1e-3, INITIAL_SIGMA);
+        Sigma = std::clamp(Sigma, Scalar(1e-3), INITIAL_SIGMA);
 
-        std::normal_distribution<double> step(0.0, Sigma);
+        std::normal_distribution<Scalar> step(0.0, Sigma);
         for (auto& param : Params) {
             param.TauMem += step(rng);
-            param.TauMem = std::clamp(param.TauMem, 0.005, 0.5);
+            param.TauMem = std::clamp(param.TauMem, Scalar(0.005), Scalar(0.5));
 
             param.TauSyn += step(rng);
-            param.TauSyn = std::clamp(param.TauSyn, 0.005, 0.5);
+            param.TauSyn = std::clamp(param.TauSyn, Scalar(0.005), Scalar(0.5));
         }
     }
 
@@ -143,7 +143,7 @@ void Genome::Mutate(std::mt19937& rng)
     {
         while ((uniformDistribution(rng) <= DELETE_CONNECTION_CHANCE) && (Connections.size() > 0))
         {
-            std::uniform_int_distribution<uint32_t> distribution(0, Connections.size() - 1);
+            std::uniform_int_distribution<uint32_t> distribution(0, static_cast<uint32_t>(Connections.size() - 1));
             const uint32_t deleteIdx = distribution(rng);
             if (Connections[deleteIdx].Deletable)
             {
@@ -173,46 +173,46 @@ void Genome::Mutate(std::mt19937& rng)
         }
     }
 
-    const double n = static_cast<double>(std::max<size_t>(1, Connections.size()));
-    const double tauGlobal = 1.0 / std::sqrt(2.0 * n);
-    const double tauLocal = 1.0 / std::sqrt(2.0 * std::sqrt(n));
+    const Scalar n = static_cast<Scalar>(std::max<size_t>(1, Connections.size()));
+    const Scalar tauGlobal = Scalar(1.0) / std::sqrt(Scalar(2.0) * n);
+    const Scalar tauLocal = Scalar(1.0) / std::sqrt(Scalar(2.0) * std::sqrt(n));
 
-    const double globalFactor = std::exp(tauGlobal * n01(rng));
+    const Scalar globalFactor = std::exp(tauGlobal * n01(rng));
 
     for (auto& connection : Connections)
     {
         connection.Sigma *= globalFactor * std::exp(tauLocal * n01(rng));
         //connection.Sigma = std::clamp(connection.Sigma, 0.0, INITIAL_NEW_WEIGHT_SIGMA);
 
-        std::normal_distribution<double> weightStep(0.0, connection.Sigma);
+        std::normal_distribution<Scalar> weightStep(0.0, connection.Sigma);
         connection.Weight += weightStep(rng);
         connection.Weight = std::clamp(connection.Weight, -MAX_WEIGHT, MAX_WEIGHT);
     }
 }
 
-double Individual::EvaluateFitness(const CartPole& game) const
+Scalar Individual::EvaluateFitness(const CartPole& game) const
 {
-    double totalGameFitness = 0.0;
+    Scalar totalGameFitness = Scalar(0.0);
     for (uint32_t playerIndex = 0; playerIndex < EvalutationsPerGenome; playerIndex++)
     {
         const Player& player = Players2[playerIndex];
-        const double fitness = game.PlayerFitness(player.PlayerIndex);
+        const Scalar fitness = game.PlayerFitness(player.PlayerIndex);
         totalGameFitness += fitness;
     }
 
-    double lowestFitness = std::numeric_limits<double>::max();
+    Scalar lowestFitness = std::numeric_limits<Scalar>::max();
     for (uint32_t playerIndex = 0; playerIndex < EvalutationsPerGenome; playerIndex++)
     {
         const Player& player = Players2[playerIndex];
-        const double fitness = game.PlayerFitness(player.PlayerIndex);
+        const Scalar fitness = game.PlayerFitness(player.PlayerIndex);
         if (fitness < lowestFitness)
             lowestFitness = fitness;
     }
 
-    constexpr double alpha = 0.75;
-    const double gameFitness = alpha * lowestFitness + (1.0 - alpha) * totalGameFitness / static_cast<double>(EvalutationsPerGenome);
+    constexpr Scalar alpha = 0.75;
+    const Scalar gameFitness = alpha * lowestFitness + (Scalar(1.0) - alpha) * totalGameFitness / static_cast<Scalar>(EvalutationsPerGenome);
 
-    double totalFitness = gameFitness;
+    Scalar totalFitness = gameFitness;
 
 
 
@@ -253,27 +253,27 @@ void ConstructNetwork(Individual& individual)
     }
 }
 
-void VaryNetwork(NeuralNetwork& network, std::mt19937& rng, double alpha)
+void VaryNetwork(NeuralNetwork& network, std::mt19937& rng, Scalar alpha)
 {
-    Assert((alpha >= 0.0) && (alpha <= 1.0));
+    Assert((alpha >= Scalar(0.0)) && (alpha <= Scalar(1.0)));
 
     NoisyEvalConfig config;
 
-    std::normal_distribution<double> weightNoise(0.0, config.WeightNoiseSigma);
-    std::normal_distribution<double> tauMemNoise(0.0, config.TauMemNoiseSigma);
-    std::normal_distribution<double> tauSynNoise(0.0, config.TauSynNoiseSigma);
-    std::normal_distribution<double> vThresholdNoise(0.0, config.VThresholdNoiseSigma);
+    std::normal_distribution<Scalar> weightNoise(0.0, config.WeightNoiseSigma);
+    std::normal_distribution<Scalar> tauMemNoise(0.0, config.TauMemNoiseSigma);
+    std::normal_distribution<Scalar> tauSynNoise(0.0, config.TauSynNoiseSigma);
+    std::normal_distribution<Scalar> vThresholdNoise(0.0, config.VThresholdNoiseSigma);
 
     for (auto& neuronWeights : network.Weights)
         for (auto& weight : neuronWeights)
-            weight *= (1.0 + std::clamp(weightNoise(rng) * alpha, -config.WeightNoiseSigma, config.WeightNoiseSigma));
+            weight *= (Scalar(1.0) + std::clamp(weightNoise(rng) * alpha, -config.WeightNoiseSigma, config.WeightNoiseSigma));
 
     for (uint32_t neuronIdx = 0; neuronIdx < TOTAL_NEURON_COUNT; neuronIdx++)
     {
         NeuronParams params = network.GetParams(neuronIdx);
-        params.TauMem *= (1.0 + std::clamp(tauMemNoise(rng) * alpha, -config.TauMemNoiseSigma, config.TauMemNoiseSigma));
-        params.TauSyn *= (1.0 + std::clamp(tauSynNoise(rng) * alpha, -config.TauSynNoiseSigma, config.TauSynNoiseSigma));
-        params.VThreshold *= (1.0 + std::clamp(vThresholdNoise(rng) * alpha, -config.VThresholdNoiseSigma, config.VThresholdNoiseSigma));
+        params.TauMem *= (Scalar(1.0) + std::clamp(tauMemNoise(rng) * alpha, -config.TauMemNoiseSigma, config.TauMemNoiseSigma));
+        params.TauSyn *= (Scalar(1.0) + std::clamp(tauSynNoise(rng) * alpha, -config.TauSynNoiseSigma, config.TauSynNoiseSigma));
+        params.VThreshold *= (Scalar(1.0) + std::clamp(vThresholdNoise(rng) * alpha, -config.VThresholdNoiseSigma, config.VThresholdNoiseSigma));
         network.SetParams(neuronIdx, params);
     }
 }

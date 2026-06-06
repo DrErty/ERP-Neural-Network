@@ -1,10 +1,11 @@
 #include "SimulationUI.h"
 
-void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const std::vector<Individual>& individuals, CartPole& game, const std::vector<double>& history, double sigma, double frameTime)
+/*
+void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const std::vector<Individual>& individuals, CartPole& game, const std::vector<Scalar>& history, Scalar sigma, Scalar frameTime)
 {
-    const double bestEver = history.size() > 0 ? *std::max_element(history.begin(), history.end()) : 0.0;
+    const Scalar bestEver = history.size() > 0 ? *std::max_element(history.begin(), history.end()) : Scalar(0.0);
 
-    const double bestAliveFitness = 0.0;
+    const Scalar bestAliveFitness = Scalar(0.0);
 
     const uint32_t m_GameW = Drawer::DEFAULT_WINDOW_WIDTH - Drawer::SIDEBAR_WIDTH;
     const uint32_t m_GameH = Drawer::DEFAULT_WINDOW_HEIGHT;
@@ -20,7 +21,7 @@ void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const std::vector<
     Drawer::SetColor(renderer, { 8, 10, 18, 255 });
     Drawer::FillRect(renderer, sidebarX, 0.0f, Drawer::SIDEBAR_WIDTH, (float)m_WinH);
     Drawer::SetColor(renderer, { 40, 50, 80, 255 });
-    SDL_RenderLine(renderer, sidebarX, 0.0f, sidebarX, (float)m_WinH);
+    Drawer::RenderLine(renderer, sidebarX, 0.0f, sidebarX, (float)m_WinH);
 
     Drawer::DrawTextSlow(renderer, "NEURO FLAPPY", posX, posY, { 180, 200, 255, 220 }, Drawer::g_FontMedium);
     posY += 28.0f;
@@ -111,9 +112,9 @@ void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const std::vector<
         Drawer::FillRect(renderer, posX, posY, barWidth, sparkHeight);
         Drawer::DrawRect(renderer, posX, posY, barWidth, sparkHeight);
 
-        double maxFitness = *std::max_element(history.begin(), history.end());
+        Scalar maxFitness = *std::max_element(history.begin(), history.end());
         if (maxFitness < 1.0)
-            maxFitness = 1.0;
+            maxFitness = Scalar(1.0);
 
         const uint32_t sampleCount = static_cast<uint32_t>(history.size());
 
@@ -124,21 +125,21 @@ void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const std::vector<
             const float sparkY = posY + sparkHeight - (float)(history[historyIndex] / maxFitness * sparkHeight);
             const float alpha = 0.3f + 0.7f * (float)sampleIndex / (float)sampleCount;
             Drawer::SetColor(renderer, { 60, 160, 100, static_cast<uint8_t>(50.0f * alpha) });
-            SDL_RenderLine(renderer, sparkX, sparkY, sparkX, posY + sparkHeight);
+            Drawer::RenderLine(renderer, sparkX, sparkY, sparkX, posY + sparkHeight);
         }
         for (uint32_t sampleIndex = 1; sampleIndex < sampleCount; ++sampleIndex)
         {
             const uint32_t historyIndex = (uint32_t)history.size() - sampleCount + sampleIndex;
             const float startX = posX + (float)(sampleIndex - 1) * barWidth / (float)sampleCount;
             const float endX = posX + (float)sampleIndex * barWidth / (float)sampleCount;
-            const float startY = posY + sparkHeight - (float)(std::max(history[historyIndex - 1], 0.0) / maxFitness * sparkHeight);
-            const float endY = posY + sparkHeight - (float)(std::max(history[historyIndex], 0.0) / maxFitness * sparkHeight);
+            const float startY = posY + sparkHeight - (float)(std::max(history[historyIndex - 1], Scalar(0.0)) / maxFitness * sparkHeight);
+            const float endY = posY + sparkHeight - (float)(std::max(history[historyIndex], Scalar(0.0)) / maxFitness * sparkHeight);
             Drawer::SetColor(renderer, { 100, 220, 160, 220 });
-            SDL_RenderLine(renderer, startX, startY, endX, endY);
+            Drawer::RenderLine(renderer, startX, startY, endX, endY);
         }
         const float bestLine = posY + sparkHeight - (float)(bestEver / maxFitness * sparkHeight);
         Drawer::SetColor(renderer, { 255, 220, 60, 100 });
-        SDL_RenderLine(renderer, posX, bestLine, posX + barWidth, bestLine);
+        Drawer::RenderLine(renderer, posX, bestLine, posX + barWidth, bestLine);
         posY += sparkHeight + 12.0f;
     }
 
@@ -192,8 +193,8 @@ void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const std::vector<
         Drawer::SetColor(renderer, { 40, 50, 80, 100 });
         const float midX01 = (layerX[0] + layerX[1]) * 0.5f;
         const float midX12 = (layerX[1] + layerX[2]) * 0.5f;
-        SDL_RenderLine(renderer, midX01, panelTop, midX01, panelBottom);
-        SDL_RenderLine(renderer, midX12, panelTop, midX12, panelBottom);
+        Drawer::RenderLine(renderer, midX01, panelTop, midX01, panelBottom);
+        Drawer::RenderLine(renderer, midX12, panelTop, midX12, panelBottom);
 
         Drawer::DrawTextSlow(renderer, "IN", layerX[0] - 8.0f, panelTop - 2.0f, { 100, 180, 255, 160 }, Drawer::g_FontSmall);
         Drawer::DrawTextSlow(renderer, "HID", layerX[1] - 8.0f, panelTop - 2.0f, { 60, 220, 120, 160 }, Drawer::g_FontSmall);
@@ -207,7 +208,7 @@ void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const std::vector<
                 const int8_t preNeuronIndex = postNeuron.InputConnections[inputSlot];
                 if (preNeuronIndex < 0) continue;
 
-                const double weight = baseNetwork.Weights[postNeuronIndex][inputSlot];
+                const Scalar weight = baseNetwork.Weights[postNeuronIndex][inputSlot];
                 const float weightNormalised = std::clamp(static_cast<float>(weight / 0.5), -1.0f, 1.0f);
                 const float weightAbsolute = std::abs(weightNormalised);
 
@@ -226,7 +227,7 @@ void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const std::vector<
                 for (uint32_t lineIndex = 0; lineIndex < lineCount; ++lineIndex)
                 {
                     const float offset = (lineCount == 1) ? 0.0f : (static_cast<float>(lineIndex) - static_cast<float>(lineCount - 1) * 0.5f) * 1.2f;
-                    SDL_RenderLine(renderer, neuronScreenX[static_cast<uint32_t>(preNeuronIndex)] + offset * perpX / perpLength, neuronScreenY[static_cast<uint32_t>(preNeuronIndex)] + offset * perpY / perpLength, neuronScreenX[postNeuronIndex] + offset * perpX / perpLength, neuronScreenY[postNeuronIndex] + offset * perpY / perpLength);
+                    Drawer::RenderLine(renderer, neuronScreenX[static_cast<uint32_t>(preNeuronIndex)] + offset * perpX / perpLength, neuronScreenY[static_cast<uint32_t>(preNeuronIndex)] + offset * perpY / perpLength, neuronScreenX[postNeuronIndex] + offset * perpX / perpLength, neuronScreenY[postNeuronIndex] + offset * perpY / perpLength);
                 }
 
                 const float labelX = (neuronScreenX[static_cast<uint32_t>(preNeuronIndex)] + neuronScreenX[postNeuronIndex]) * 0.5f + 2.0f;
@@ -240,7 +241,7 @@ void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const std::vector<
         for (uint32_t neuronIndex = 0; neuronIndex < TOTAL_NEURON_COUNT; ++neuronIndex)
         {
             const NeuronParams& params = baseNetwork.GetParams(neuronIndex);
-            const float activation = static_cast<float>(std::clamp(baseNetwork.VMem[neuronIndex] / params.VThreshold, 0.0, 1.0));
+            const float activation = static_cast<float>(std::clamp(baseNetwork.VMem[neuronIndex] / params.VThreshold, Scalar(0.0), Scalar(1.0)));
 
             Drawer::Col baseColor;
             if (neuronIndex < INPUT_NEURON_COUNT)
@@ -264,8 +265,8 @@ void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const std::vector<
 
             if (neuronIndex >= INPUT_NEURON_COUNT + HIDDEN_NEURON_COUNT)
             {
-                Scalar frequency = baseNetwork.GetFrequency(neuronIndex - INPUT_NEURON_COUNT - HIDDEN_NEURON_COUNT);
-                std::string freq = std::to_string(frequency);
+                const Scalar frequency = baseNetwork.GetFrequency(neuronIndex - INPUT_NEURON_COUNT - HIDDEN_NEURON_COUNT);
+                const std::string freq = std::to_string(frequency);
                 Drawer::DrawTextSlow(renderer, freq,
                     neuronScreenX[neuronIndex] - neuronRadius * 2,
                     neuronScreenY[neuronIndex],
@@ -276,8 +277,8 @@ void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const std::vector<
 
             if (neuronIndex < INPUT_NEURON_COUNT)
             {
-                float frequency = player.InputState[neuronIndex].CurrentRate();
-                std::string freq = std::to_string(frequency);
+                const Scalar frequency = player.InputState[neuronIndex].CurrentRate();
+                const std::string freq = std::to_string(frequency);
                 Drawer::DrawTextSlow(renderer, freq,
                     neuronScreenX[neuronIndex] - neuronRadius * 2,
                     neuronScreenY[neuronIndex],
@@ -302,6 +303,7 @@ void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const std::vector<
         posY += networkHeight + 8.0f;
     }
 }
+*/
 
 SettingsPanel::SettingsPanel(SDL_Window* window, uint32_t windowWidth, uint32_t windowHeight)
     : m_Window(window)
@@ -452,7 +454,7 @@ void SettingsPanel::HandleEvent(const SDL_Event& event)
                 break;
             }
 
-            Rect band = row.track;          // generous grab band around the track
+            Rect band = row.track;
             band.Y -= 12.0f;
             band.H += 24.0f;
             if (band.Contains(mx, my))
@@ -467,7 +469,7 @@ void SettingsPanel::HandleEvent(const SDL_Event& event)
         }
 
         if (!hit && m_EditIndex >= 0)
-            CommitEdit();                    // clicked empty space -> commit
+            CommitEdit();
         break;
     }
 
@@ -539,7 +541,7 @@ void SettingsPanel::Draw(SDL_Renderer* renderer)
     Drawer::SetColor(renderer, Drawer::Col{ 18, 22, 34, 235 });
     Drawer::FillRect(renderer, 0.0f, 0.0f, w, h);
     Drawer::SetColor(renderer, Drawer::Col{ 70, 84, 120, 255 });
-    SDL_RenderLine(renderer, w, 0.0f, w, h);
+    Drawer::RenderLine(renderer, w, 0.0f, w, h);
 
     if (Drawer::g_FontMedium)
         Drawer::DrawTextSlow(renderer, "Settings", 16.0f, 22.0f, Drawer::Col{ 220, 228, 245, 255 }, Drawer::g_FontMedium, false);
@@ -666,9 +668,9 @@ void Dashboard::DrawNetwork(SDL_Renderer* renderer, const NetworkGenome& genome)
 
     const float radius = std::clamp(innerH / (static_cast<float>(maxLayer) * 2.4f), 3.0f, 11.0f);
 
-    auto signedColor = [](float value, uint8_t baseAlpha) -> Drawer::Col
+    auto signedColor = [](Scalar value, uint8_t baseAlpha) -> Drawer::Col
         {
-            const float t = std::clamp(value / WEIGHT_LIMIT, -1.0, 1.0);
+            const float t = static_cast<float>(std::clamp(value / WEIGHT_LIMIT, Scalar(-1.0), Scalar(1.0)));
             const float m = std::fabs(t);
             const Drawer::Col neutral{ 120, 128, 150, baseAlpha };
             const Drawer::Col positive{ 235, 140, 70, 255 };
@@ -679,7 +681,6 @@ void Dashboard::DrawNetwork(SDL_Renderer* renderer, const NetworkGenome& genome)
             return c;
         };
 
-    // connections first (behind neurons), in the same layout the network uses
     uint32_t wOff = 0;
     for (uint32_t l = 1; l < LAYER_COUNT; ++l)
     {
@@ -690,24 +691,31 @@ void Dashboard::DrawNetwork(SDL_Renderer* renderer, const NetworkGenome& genome)
             for (uint32_t i = 0; i < prev; ++i)
             {
                 const Scalar wv = genome.Weights[wOff + j * prev + i];
-                if (wv != 0.0)
+                if (wv != Scalar(0.0))
                 {
-                    Drawer::SetColor(renderer, signedColor(static_cast<float>(wv), 24));
+                    Drawer::SetColor(renderer, signedColor(wv, 24));
                     const P a = pos[layerStart[l - 1] + i];
                     const P b = pos[layerStart[l] + j];
-                    SDL_RenderLine(renderer, a.x, a.y, b.x, b.y);
+                    Drawer::RenderLine(renderer, a.x, a.y, b.x, b.y);
 
                     const P m = { (a.x + b.x) / 2.0f, (a.y + b.y) / 2.0f };
 
-                    if (Drawer::g_FontSmall)
-                        Drawer::DrawTextSlow(renderer, std::to_string(wv) + ", " + std::to_string(wOff + j * prev + i), m.x, m.y, Drawer::Col{200, 215, 240, 230}, Drawer::g_FontSmall, false);
+                    {
+                        StaticBuffer<char> stringBuffer(1024);
+                        StringBuilder stringBuilder(stringBuffer);
+                        stringBuilder.Concat(wv);
+                        stringBuilder.Concat(", ");
+                        stringBuilder.Concat(wOff + j * prev + i);
+                        stringBuilder.Compile();
+
+                        Drawer::DrawTextSlow(renderer, stringBuffer.GetData(), m.x, m.y, Drawer::Col{ 200, 215, 240, 230 }, Drawer::g_FontSmall, false);
+                    }
                 }
             }
         }
         wOff += prev * cur;
     }
 
-    // neurons (input layer neutral, others coloured by bias)
     uint32_t bOff = 0;
     for (uint32_t l = 0; l < LAYER_COUNT; ++l)
     {
@@ -716,7 +724,7 @@ void Dashboard::DrawNetwork(SDL_Renderer* renderer, const NetworkGenome& genome)
             const P p = pos[layerStart[l] + k];
             const Drawer::Col face = (l == 0)
                 ? Drawer::Col{ 150, 158, 178, 255 }
-            : signedColor(static_cast<float>(genome.Biases[bOff + k]), 90);
+            : signedColor(genome.Biases[bOff + k], 90);
             Drawer::SetColor(renderer, Drawer::Col{ 20, 24, 36, 255 });
             Drawer::DrawCircle(renderer, p.x, p.y, radius + 1.5f);
             Drawer::SetColor(renderer, face);

@@ -23,7 +23,9 @@
 
 #define NOMINMAX
 
-using Scalar = double;
+#include "Logger.h"
+
+using Scalar = float;
 
 static constexpr Scalar g_PI = Scalar(3.1415926535897932384626433832);
 
@@ -52,6 +54,35 @@ static constexpr Scalar MIN_INPUT_RATE = Scalar(0.0);
 static constexpr Scalar MAX_INPUT_RATE = Scalar(60.0);
 
 static constexpr uint32_t MAX_MEASUREMENTS = 10;
+
+template<typename... Args>
+static void ExitFatal(const char* file, uint32_t line, Args&&... args)
+{
+	const char* const lastSeperator = strrchr(file, '\\');
+	Logger::PrintLine("[ERROR]: ", lastSeperator ? lastSeperator + 1 : file, "(", line, "): ", std::forward<Args>(args)...);
+	__debugbreak();
+	exit(EXIT_FAILURE);
+}
+
+#define ERP_VERBOSE
+
+#define ERP_VERIFY(check, ...) if (!(check)) ExitFatal(__FILE__, __LINE__, __VA_ARGS__)
+
+#ifdef _DEBUG
+#define ERP_ASSERT(check, ...) if (!(check)) ExitFatal(__FILE__, __LINE__, __VA_ARGS__)
+#else
+#define ERP_ASSERT(check, ...)
+#endif
+
+#ifdef ERP_VERBOSE
+#define ERP_LOG(...) Logger::PrintLine("[VERBOSE]: ", __VA_ARGS__)
+#define ERP_LOG_ERROR(...) Logger::PrintLine("[ERROR]: ", __VA_ARGS__)
+#else
+#define ERP_LOG(...)
+#define ERP_LOG_ERROR(...)
+#endif
+
+#define ERP_EXIT_FATAL(...) ExitFatal(__FILE__, __LINE__, __VA_ARGS__)
 
 static uint32_t HashSeed(uint32_t generation, uint32_t slot)
 {

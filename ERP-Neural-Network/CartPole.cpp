@@ -14,26 +14,26 @@ uint32_t CartPole::AddPlayer(bool display, std::mt19937& rng, uint32_t generatio
 {
     const uint32_t playerIndex = static_cast<uint32_t>(m_Players.size());
     Player player;
-    std::uniform_real_distribution<double> distribution(-1.0, 1.0);
+    std::uniform_real_distribution<Scalar> distribution(-1.0, 1.0);
 
     if (true)
     {
         Scalar range = static_cast<Scalar>(generation) / static_cast<Scalar>(MAX_MEASUREMENTS - 1);
-        range *= 2.0;
-        range -= 1.0;
+        range *= Scalar(2.0);
+        range -= Scalar(1.0);
 
-        player.State.Theta = g_PI * (range) / 6.0;
+        player.State.Theta = g_PI * (range) / Scalar(6.0);
         std::cout << "Starting angle: " << player.State.Theta << "\n";
     }
     else
     {
         if (playerIndex % 2 == 0)
         {
-            player.State.Theta = g_PI * distribution(rng) / 6.0;
+            player.State.Theta = g_PI * distribution(rng) / Scalar(6.0);
         }
         else
         {
-            player.State.Theta = g_PI * (1.0 + 0.1 * distribution(rng));
+            player.State.Theta = g_PI * (Scalar(1.0) + Scalar(0.1) * distribution(rng));
         }
     }
 
@@ -68,11 +68,11 @@ std::array<Scalar, INPUT_COUNT> CartPole::GetInputs(uint32_t playerIndex) const
 
     const PhysicsState& state = m_Players[playerIndex].State;
 
-    const double thetaNormed = state.Theta / ANGLE_NORM;
-    const double thetaDotNormed = state.ThetaDot / ANGULAR_VEL_NORM;
-    const double XNormed = state.X / POSITION_NORM;
-    const double XDotNormed = state.XDot / CART_VEL_NORM;
-    const double IsUp = std::abs(state.Theta) < g_PI;
+    const Scalar thetaNormed = state.Theta / ANGLE_NORM;
+    const Scalar thetaDotNormed = state.ThetaDot / ANGULAR_VEL_NORM;
+    const Scalar XNormed = state.X / POSITION_NORM;
+    const Scalar XDotNormed = state.XDot / CART_VEL_NORM;
+    const Scalar IsUp = std::abs(state.Theta) < g_PI;
     return { thetaNormed, thetaDotNormed, XDotNormed };
 }
 
@@ -83,14 +83,14 @@ const CartPole::PhysicsState& CartPole::GetState(uint32_t playerIndex) const
     return m_Players[playerIndex].State;
 }
 
-CartPole::PhysicsState CartPole::StepPhysics(const PhysicsState& state, double force, double dt) const
+CartPole::PhysicsState CartPole::StepPhysics(const PhysicsState& state, Scalar force, Scalar dt) const
 {
-    const double sinTheta = std::sin(state.Theta);
-    const double cosTheta = std::cos(state.Theta);
-    const double denominator = CART_MASS + POLE_MASS * sinTheta * sinTheta;
+    const Scalar sinTheta = std::sin(state.Theta);
+    const Scalar cosTheta = std::cos(state.Theta);
+    const Scalar denominator = CART_MASS + POLE_MASS * sinTheta * sinTheta;
 
-    const double xDotDot = (force + POLE_MASS * POLE_HALF_LENGTH * state.ThetaDot * state.ThetaDot * sinTheta - POLE_MASS * GRAVITY_ACCEL * sinTheta * cosTheta) / denominator;
-    const double thetaDotDot = ((CART_MASS + POLE_MASS) * GRAVITY_ACCEL * sinTheta - force * cosTheta - POLE_MASS * POLE_HALF_LENGTH * state.ThetaDot * state.ThetaDot * sinTheta * cosTheta) / (POLE_HALF_LENGTH * denominator);
+    const Scalar xDotDot = (force + POLE_MASS * POLE_HALF_LENGTH * state.ThetaDot * state.ThetaDot * sinTheta - POLE_MASS * GRAVITY_ACCEL * sinTheta * cosTheta) / denominator;
+    const Scalar thetaDotDot = ((CART_MASS + POLE_MASS) * GRAVITY_ACCEL * sinTheta - force * cosTheta - POLE_MASS * POLE_HALF_LENGTH * state.ThetaDot * state.ThetaDot * sinTheta * cosTheta) / (POLE_HALF_LENGTH * denominator);
 
     PhysicsState next;
     next.X = state.X + state.XDot * dt;
@@ -109,7 +109,7 @@ CartPole::PhysicsState CartPole::StepPhysics(const PhysicsState& state, double f
 
 bool CartPole::IsTerminal(const PhysicsState& state) const
 {
-    return std::abs(state.X) > static_cast<double>(POSITION_NORM);
+    return std::abs(state.X) > static_cast<Scalar>(POSITION_NORM);
 }
 
 void CartPole::Step(Scalar dt)
@@ -118,17 +118,17 @@ void CartPole::Step(Scalar dt)
 
     if (m_Done) return;
 
-    const double physDt = static_cast<double>(dt) / static_cast<double>(PHYS_STEPS);
+    const Scalar physDt = static_cast<Scalar>(dt) / static_cast<Scalar>(PHYS_STEPS);
 
     if (m_Players.size() > 0 and MOVING_CAMERA)
     {
         Player& lastBestPlayer = m_Players[0];
         for (uint32_t substep = 0; substep < PHYS_STEPS; ++substep)
         {
-            m_CameraSpeed += (lastBestPlayer.State.XDot - m_CameraSpeed) * physDt * 1.0;
+            m_CameraSpeed += (lastBestPlayer.State.XDot - m_CameraSpeed) * physDt * Scalar(1.0);
 
             m_CameraX += m_CameraSpeed * physDt;
-            m_CameraX += (lastBestPlayer.State.X - m_CameraX) * physDt * 1.0;
+            m_CameraX += (lastBestPlayer.State.X - m_CameraX) * physDt * Scalar(1.0);
         }
     }
 
@@ -142,19 +142,18 @@ void CartPole::Step(Scalar dt)
         {
             for (uint32_t substep = 0; substep < PHYS_STEPS; ++substep)
             {
-                const double appliedForce = static_cast<double>(player->PendingForce);
+                const Scalar appliedForce = player->PendingForce;
                 player->State = StepPhysics(player->State, appliedForce, physDt);
 
-                const double positionFraction = 1.0 - std::min(1.0, std::abs(player->State.X) / POSITION_NORM);
+                const Scalar positionFraction = Scalar(1.0) - std::min(Scalar(1.0), std::abs(player->State.X) / POSITION_NORM);
 
-                const double E_pole = 0.5 * POLE_MASS * POLE_HALF_LENGTH * POLE_HALF_LENGTH * player->State.ThetaDot * player->State.ThetaDot - POLE_MASS * GRAVITY_ACCEL * POLE_HALF_LENGTH * std::cos(player->State.Theta);
-                const double E_target = -POLE_MASS * GRAVITY_ACCEL * POLE_HALF_LENGTH;
-                const double E_max = POLE_MASS * GRAVITY_ACCEL * POLE_HALF_LENGTH * 2.0;
-                const double energyReward = 1.0 - std::min(1.0, std::abs(E_pole - E_target) / E_max);
+                const Scalar E_pole = Scalar(0.5) * POLE_MASS * POLE_HALF_LENGTH * POLE_HALF_LENGTH * player->State.ThetaDot * player->State.ThetaDot - POLE_MASS * GRAVITY_ACCEL * POLE_HALF_LENGTH * std::cos(player->State.Theta);
+                const Scalar E_target = -POLE_MASS * GRAVITY_ACCEL * POLE_HALF_LENGTH;
+                const Scalar E_max = POLE_MASS * GRAVITY_ACCEL * POLE_HALF_LENGTH * 2.0;
+                const Scalar energyReward = Scalar(1.0) - std::min(Scalar(1.0), std::abs(E_pole - E_target) / E_max);
 
-                player->Fitness += energyReward * physDt * 200.0;
-                player->Fitness += physDt * 50.0;
-                //player->Fitness += std::max(0.0, positionFraction) * physDt * 1000.0;
+                player->Fitness += energyReward * physDt * Scalar(200.0);
+                player->Fitness += physDt * Scalar(50.0);
             }
         });
 
@@ -197,7 +196,7 @@ void CartPole::Render()
     DrawBackground();
 
     const Player* bestPlayer = FindBestPlayer();
-    double cameraX = bestPlayer ? bestPlayer->State.X : 0.0;
+    Scalar cameraX = bestPlayer ? bestPlayer->State.X : Scalar(0.0);
     cameraX = m_CameraX;
 
     DrawTrack(cameraX);
@@ -242,9 +241,9 @@ const CartPole::Player* CartPole::FindBestPlayer() const
     return bestPlayer;
 }
 
-float CartPole::WorldToScreenX(double worldX, double cameraX) const
+float CartPole::WorldToScreenX(Scalar worldX, Scalar cameraX) const
 {
-    const float pixelsPerMeter = static_cast<float>(m_GameWidth) * 0.8f / (POSITION_NORM * 2.0f);
+    const float pixelsPerMeter = static_cast<float>(m_GameWidth) * 0.8f / static_cast<float>(POSITION_NORM * Scalar(2.0));
     const float screenCentreX = static_cast<float>(m_GameWidth) * 0.5f;
     return screenCentreX + static_cast<float>(worldX - cameraX) * pixelsPerMeter;
 }
@@ -264,7 +263,7 @@ void CartPole::DrawBackground() const
     }
 }
 
-void CartPole::DrawTrack(double cameraX) const
+void CartPole::DrawTrack(Scalar cameraX) const
 {
     const float trackY = GetTrackY();
     const float trackThickness = 6.0f;
@@ -276,17 +275,17 @@ void CartPole::DrawTrack(double cameraX) const
     Drawer::SetColor(m_Renderer, { 60, 70, 100, 120 });
     SDL_RenderLine(m_Renderer, originScreenX, trackY - 24.0f, originScreenX, trackY + trackThickness);
 
-    const float referenceLeft = WorldToScreenX(-static_cast<double>(POSITION_NORM), cameraX);
-    const float referenceRight = WorldToScreenX(static_cast<double>(POSITION_NORM), cameraX);
+    const float referenceLeft = WorldToScreenX(-static_cast<Scalar>(POSITION_NORM), cameraX);
+    const float referenceRight = WorldToScreenX(static_cast<Scalar>(POSITION_NORM), cameraX);
     Drawer::SetColor(m_Renderer, { 100, 80, 80, 80 });
     SDL_RenderLine(m_Renderer, referenceLeft, trackY - 16.0f, referenceLeft, trackY + trackThickness);
     SDL_RenderLine(m_Renderer, referenceRight, trackY - 16.0f, referenceRight, trackY + trackThickness);
 }
 
-void CartPole::DrawPlayer(const Player& player, bool isBest, double cameraX) const
+void CartPole::DrawPlayer(const Player& player, bool isBest, Scalar cameraX) const
 {
     const float trackY = GetTrackY();
-    const float pixelsPerMeter = static_cast<float>(m_GameWidth) * 0.8f / (POSITION_NORM * 2.0f);
+    const float pixelsPerMeter = static_cast<float>(m_GameWidth) * 0.8f / static_cast<float>(POSITION_NORM * Scalar(2.0));
     const float poleScreenLength = static_cast<float>(POLE_HALF_LENGTH * 2.0) * pixelsPerMeter;
 
     const float cartScreenX = WorldToScreenX(player.State.X, cameraX);

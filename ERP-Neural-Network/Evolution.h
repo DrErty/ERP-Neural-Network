@@ -7,10 +7,10 @@
 
 struct NoisyEvalConfig
 {
-    double WeightNoiseSigma = 0.3;
-    double TauMemNoiseSigma = 0.1;
-    double TauSynNoiseSigma = 0.2;
-    double VThresholdNoiseSigma = 0.02;
+    Scalar WeightNoiseSigma = Scalar(0.3);
+    Scalar TauMemNoiseSigma = Scalar(0.1);
+    Scalar TauSynNoiseSigma = Scalar(0.2);
+    Scalar VThresholdNoiseSigma = Scalar(0.02);
 };
 
 static constexpr std::array<NeuronParams, HIDDEN_NEURON_COUNT + OUTPUT_NEURON_COUNT> NEURON_PARAMS = {
@@ -82,26 +82,26 @@ static constexpr std::array<NeuronParams, HIDDEN_NEURON_COUNT + OUTPUT_NEURON_CO
         },
         */
         {
-            .VDrive = 3.0,
-            .TauMem = 0.5,
-            .TauSyn = 0.08,
-            .VLeak = 0.0,
-            .VThreshold = 1.244
+            .VDrive = Scalar(3.0),
+            .TauMem = Scalar(0.5),
+            .TauSyn = Scalar(0.08),
+            .VLeak = Scalar(0.0),
+            .VThreshold = Scalar(1.244)
         }
     }
 };
 
 struct Connection
 {
-    Connection(double weight, int8_t inputNeuron, int8_t outputNeuron, bool deletable)
+    Connection(Scalar weight, int8_t inputNeuron, int8_t outputNeuron, bool deletable)
         : Weight(weight), Sigma(INITIAL_SIGMA), InputNeuron(inputNeuron), OutputNeuron(outputNeuron), Deletable(deletable)
     {
 
     }
     Connection() = delete;
 
-    double Weight;
-    double Sigma;
+    Scalar Weight;
+    Scalar Sigma;
     int8_t InputNeuron;
     int8_t OutputNeuron;
     bool Deletable = true;
@@ -113,7 +113,7 @@ struct Genome
 
     std::array<NeuronParams, HIDDEN_NEURON_COUNT + OUTPUT_NEURON_COUNT> Params = NEURON_PARAMS;
 
-    double Sigma = INITIAL_SIGMA;
+    Scalar Sigma = INITIAL_SIGMA;
 
     Genome();
 
@@ -140,11 +140,11 @@ struct Individual
     uint32_t EvalutationsPerGenome = 1;
     bool Alive = true;
 
-    double EvaluateFitness(const CartPole& game) const;
+    Scalar EvaluateFitness(const CartPole& game) const;
 };
 
 Genome CrossoverGenome(const Genome& genomeA, const Genome& genomeB, std::mt19937& rng);
 
 void ConstructNetwork(Individual& individual);
 
-void VaryNetwork(NeuralNetwork& network, std::mt19937& rng, double alpha);
+void VaryNetwork(NeuralNetwork& network, std::mt19937& rng, Scalar alpha);

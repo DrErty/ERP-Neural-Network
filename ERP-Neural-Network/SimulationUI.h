@@ -13,7 +13,7 @@
 
 #include "Oscilloscope.h"
 
-void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const std::vector<Individual>& individuals, CartPole& game, const std::vector<double>& history, double sigma, double frameTime);
+void DrawSidebar(SDL_Renderer* renderer, uint32_t generation, const std::vector<Individual>& individuals, CartPole& game, const std::vector<Scalar>& history, Scalar sigma, Scalar frameTime);
 
 class SettingsPanel
 {
@@ -54,9 +54,9 @@ private:
     struct Row
     {
         float labelX = 0.0f, labelY = 0.0f;
-        Rect  track;
+        Rect track;
         float handleX = 0.0f, handleY = 0.0f;
-        Rect  box;
+        Rect box;
     };
 
     Row Layout(std::size_t index) const;
