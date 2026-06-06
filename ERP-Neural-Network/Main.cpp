@@ -294,11 +294,11 @@ struct MeasurementBuffers
             stringBuilder.Compile();
 
             IO::SaveCsv(buffer.GetData(), {"Time", "Theta"}, TimeBuffer.Span(), ThetaBuffer.Span());
-            std::cout << "Saving file to: " << buffer.GetData() << "\n";
+            ERP_LOG("Saving file to: ", buffer.GetData());
         }
         else
         {
-            std::cout << "Skipping saving to file, buffer not full.\n";
+            ERP_LOG("Skipping saving to file, buffer not full.");
         }
     }
 };
@@ -324,12 +324,11 @@ static void StartTrainingBetter(const Renderer& renderer, GameState& gameState, 
                 });
 
             gameState.Generation += 1;
-            std::cout << gameState.Generation << std::endl;
+            ERP_LOG(gameState.Generation);
             EvolutionUnit* lastBestUnit = units.size() > 0 ? &units[0] : nullptr;
             if (lastBestUnit)
             {
-                //lastBestUnit->Genome.Print();
-                std::cout << "Fitness: " << ComputeFitness(game, *lastBestUnit) << std::endl;
+                ERP_LOG("Fitness: ", ComputeFitness(game, *lastBestUnit));
             }
 
             const Scalar bestFitness = lastBestUnit ? ComputeFitness(game, *lastBestUnit) : Scalar(0.0);
@@ -421,7 +420,7 @@ static void StartTrainingBetter(const Renderer& renderer, GameState& gameState, 
     if (units.size() > 0)
     {
         IO::SaveGenome(units[0].Genome, FILE_PATH);
-        std::cout << "Saving genome to file at: " << FILE_PATH << "\n";
+        ERP_LOG("Saving genome to file at: ", FILE_PATH);
     }
 }
 
@@ -435,7 +434,7 @@ static void StartSim(const Renderer& renderer, GameState& gameState, CartPole& g
     if (!genomeLoadResult)
     {
         // TODO: Replace with log function
-        std::cout << "Error loading genome file: " << genomeLoadResult.Error << '\n';
+        ERP_LOG("Error loading genome file: ", genomeLoadResult.Error);
         return;
     }
 
@@ -554,7 +553,7 @@ static void StartExp(const Renderer& renderer, GameState& gameState, CartPole& g
 
                 if (strncmp(buffer.GetData(), "Error", 5) == 0)
                 {
-                    //ERP_LOG(buffer.GetData());
+                    ERP_LOG(buffer.GetData());
                 }
                 else
                 {
@@ -562,7 +561,7 @@ static void StartExp(const Renderer& renderer, GameState& gameState, CartPole& g
                     const auto [ptr, ec] = std::from_chars(buffer.GetData(), buffer.GetData() + buffer.GetCount(), out);
 
                     game.SetForce(currentPlayerIndex, out);
-                    //std::cout << out << '\n';
+                    ERP_LOG(out);
                 }
             }
 
@@ -587,6 +586,7 @@ static void StartExp(const Renderer& renderer, GameState& gameState, CartPole& g
 
 int main(int argc, char* argv[])
 {
+    Memory::ThreadStackAllocator.AllocateBlock(static_cast<size_t>(8) * 1024 * 1024);
 
     const Renderer renderer = StartSDL();
     std::mt19937 rng(std::random_device{}());
@@ -600,5 +600,7 @@ int main(int argc, char* argv[])
 
     StopSDL(renderer);
     
+    Memory::ThreadStackAllocator.DeallocateBlock();
+
     return 0;
 }

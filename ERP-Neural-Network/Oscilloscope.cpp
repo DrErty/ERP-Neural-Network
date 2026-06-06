@@ -129,9 +129,12 @@ void Oscilloscope::Draw(SDL_Renderer* renderer, std::span<const Scalar> samples)
 
         if (!samples.empty())
         {
-            char buf[32];
-            std::snprintf(buf, sizeof(buf), "%.3f", static_cast<Scalar>(samples.back()));
-            Drawer::DrawTextSlow(renderer, buf, right - 56.0f, top + 4.0f, m_LabelColor, Drawer::g_FontSmall, false);
+            StaticBuffer<char> stringBuffer(32);
+            StringBuilder stringBuilder(stringBuffer);
+            stringBuilder.Concat(static_cast<Scalar>(samples.back()));
+            stringBuilder.Compile();
+
+            Drawer::DrawTextSlow(renderer, stringBuffer.GetData(), right - 56.0f, top + 4.0f, m_LabelColor, Drawer::g_FontSmall, false);
         }
     }
 }

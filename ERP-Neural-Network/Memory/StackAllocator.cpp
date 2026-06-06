@@ -69,7 +69,7 @@ void* StackAllocator::Allocate(size_t size, size_t alignment)
 	m_Ptr = nextPtr;
 	m_Head = newSpan.data();
 #if _DEBUG
-	m_PeakUsage = glm::max(m_PeakUsage, static_cast<size_t>(static_cast<std::byte*>(nextPtr) - m_Memory));
+	m_PeakUsage = std::max(m_PeakUsage, static_cast<size_t>(static_cast<std::byte*>(nextPtr) - m_Memory));
 #endif
 
 	return newSpan.data();

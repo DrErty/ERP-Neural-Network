@@ -10,7 +10,7 @@ template<typename T>
 class StaticBuffer
 {
 public:
-	static constexpr bool UseStack = false;
+	static constexpr bool UseStack = true;
 
 	explicit StaticBuffer(size_t count)
 	{

@@ -101,21 +101,18 @@ size_t Genome::FindConnection(NeuronIdx inputNeuron, NeuronIdx outputNeuron) con
 
 void Genome::Print()
 {
-    std::cout << "Connections, count: " << Connections.size() << ": \n";
+    ERP_LOG("Connections, count: ", Connections.size());
 
     for (auto& connection : Connections)
     {
-        std::cout << "In: " << static_cast<uint32_t>(connection.InputNeuron) 
-            << " Out: " << static_cast<uint32_t>(connection.OutputNeuron)
-            << " Weight:" << connection.Weight
-            << " Sigma:" << connection.Sigma << '\n';
+        ERP_LOG("In: ", static_cast<uint32_t>(connection.InputNeuron), " Out: ", static_cast<uint32_t>(connection.OutputNeuron), " Weight:", connection.Weight, " Sigma:", connection.Sigma);
     }
 
     for (auto& param : Params)
     {
         param.Print();
     }
-    std::cout << "Global Sigma:" << Sigma << '\n';
+    ERP_LOG("Global Sigma:", Sigma);
 }
 
 void Genome::Mutate(std::mt19937& rng)

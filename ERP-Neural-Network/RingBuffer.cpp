@@ -1,5 +1,10 @@
 #include "RingBuffer.h"
 
+RingBuffer::RingBuffer()
+    : m_Data(CAPACITY)
+{
+}
+
 void RingBuffer::Push(Scalar value)
 {
     m_Data[m_Head] = value;
@@ -27,5 +32,5 @@ std::span<const Scalar> RingBuffer::Span()
         std::rotate(m_Data.begin(), m_Data.begin() + m_Head, m_Data.end());
         m_Head = 0;
     }
-    return std::span<const Scalar>(m_Data.data(), m_Count);
+    return std::span<const Scalar>(m_Data.GetData(), m_Count);
 }

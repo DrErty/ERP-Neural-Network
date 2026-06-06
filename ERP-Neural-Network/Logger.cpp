@@ -11,6 +11,6 @@ namespace Logger
 	void PrintInternal(const char* str)
 	{
 		const std::lock_guard<std::mutex> lock(PrintMutex);
-		printf(str);
+		std::printf(str);
 	}
 };

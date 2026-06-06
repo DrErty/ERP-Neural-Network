@@ -7,6 +7,8 @@ class RingBuffer
 public:
     static constexpr std::size_t CAPACITY = 1500;
 
+    RingBuffer();
+
     void Push(Scalar value);
     void Push(std::span<const Scalar> values);
     void Clear();
@@ -17,7 +19,7 @@ public:
 
     std::span<const Scalar> Span();
 private:
-    std::array<Scalar, CAPACITY> m_Data = {};
+    StaticBuffer<Scalar> m_Data;
     std::size_t m_Head = 0;
     std::size_t m_Count = 0;
 };

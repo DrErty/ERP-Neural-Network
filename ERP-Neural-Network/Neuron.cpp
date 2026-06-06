@@ -2,7 +2,7 @@
 
 void NeuronParams::Print() const
 {
-    std::cout << "Params: " << "TauMem: " << TauMem << ", TauSyn: " << TauSyn << '\n';
+    ERP_LOG("Params: TauMem: ", TauMem, ", TauSyn: ", TauSyn);
 }
 
 void SpikeEncoder::SetValue(Scalar value)
