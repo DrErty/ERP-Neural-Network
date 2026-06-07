@@ -59,9 +59,9 @@ Genome::Genome()
     {
         if (HIDDEN_NEURON_COUNT == 0)
         {
-            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(0), false);
-            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(1), false);
-            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(2), false);
+            Connections.emplace_back(Scalar(0.0), GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(0), false);
+            Connections.emplace_back(Scalar(0.0), GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(1), false);
+            Connections.emplace_back(Scalar(0.0), GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(2), false);
         }
     }
 
@@ -69,17 +69,17 @@ Genome::Genome()
     {
         if (HIDDEN_NEURON_COUNT == 2)
         {
-            Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(0), GetNeuronIdxFromInputIdx(0), false);
-            Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(0), GetNeuronIdxFromInputIdx(1), false);
-            Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(0), GetNeuronIdxFromInputIdx(2), false);
+            Connections.emplace_back(Scalar(0.0), GetNeuronIdxFromHiddenIdx(0), GetNeuronIdxFromInputIdx(0), false);
+            Connections.emplace_back(Scalar(0.0), GetNeuronIdxFromHiddenIdx(0), GetNeuronIdxFromInputIdx(1), false);
+            Connections.emplace_back(Scalar(0.0), GetNeuronIdxFromHiddenIdx(0), GetNeuronIdxFromInputIdx(2), false);
 
-            Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(1), GetNeuronIdxFromInputIdx(3), false);
-            Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(1), GetNeuronIdxFromInputIdx(4), false);
-            Connections.emplace_back(0.0, GetNeuronIdxFromHiddenIdx(1), GetNeuronIdxFromInputIdx(5), false);
+            Connections.emplace_back(Scalar(0.0), GetNeuronIdxFromHiddenIdx(1), GetNeuronIdxFromInputIdx(3), false);
+            Connections.emplace_back(Scalar(0.0), GetNeuronIdxFromHiddenIdx(1), GetNeuronIdxFromInputIdx(4), false);
+            Connections.emplace_back(Scalar(0.0), GetNeuronIdxFromHiddenIdx(1), GetNeuronIdxFromInputIdx(5), false);
 
-            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromHiddenIdx(0), false);
-            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromHiddenIdx(1), false);
-            Connections.emplace_back(0.0, GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(5), false);
+            Connections.emplace_back(Scalar(0.0), GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromHiddenIdx(0), false);
+            Connections.emplace_back(Scalar(0.0), GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromHiddenIdx(1), false);
+            Connections.emplace_back(Scalar(0.0), GetNeuronIdxFromOutputIdx(0), GetNeuronIdxFromInputIdx(5), false);
         }
     }
 }
@@ -162,7 +162,7 @@ void Genome::Mutate(std::mt19937& rng)
                 {
                     if (ValidConnection(Connections, inputNeuron, outputNeuron))
                     {
-                        Connections.emplace_back(0.0, inputNeuron, outputNeuron, true);
+                        Connections.emplace_back(Scalar(0.0), inputNeuron, outputNeuron, true);
                     }
                     break;
                 }
@@ -179,9 +179,9 @@ void Genome::Mutate(std::mt19937& rng)
     for (auto& connection : Connections)
     {
         connection.Sigma *= globalFactor * std::exp(tauLocal * n01(rng));
-        //connection.Sigma = std::clamp(connection.Sigma, 0.0, INITIAL_NEW_WEIGHT_SIGMA);
+        //connection.Sigma = std::clamp(connection.Sigma, Scalar(0.0), INITIAL_NEW_WEIGHT_SIGMA);
 
-        std::normal_distribution<Scalar> weightStep(0.0, connection.Sigma);
+        std::normal_distribution<Scalar> weightStep(Scalar(0.0), connection.Sigma);
         connection.Weight += weightStep(rng);
         connection.Weight = std::clamp(connection.Weight, -MAX_WEIGHT, MAX_WEIGHT);
     }
@@ -206,12 +206,10 @@ Scalar Individual::EvaluateFitness(const CartPole& game) const
             lowestFitness = fitness;
     }
 
-    constexpr Scalar alpha = 0.75;
+    constexpr Scalar alpha = Scalar(0.75);
     const Scalar gameFitness = alpha * lowestFitness + (Scalar(1.0) - alpha) * totalGameFitness / static_cast<Scalar>(EvalutationsPerGenome);
 
     Scalar totalFitness = gameFitness;
-
-
 
     return totalFitness;
 }
@@ -256,10 +254,10 @@ void VaryNetwork(NeuralNetwork& network, std::mt19937& rng, Scalar alpha)
 
     NoisyEvalConfig config;
 
-    std::normal_distribution<Scalar> weightNoise(0.0, config.WeightNoiseSigma);
-    std::normal_distribution<Scalar> tauMemNoise(0.0, config.TauMemNoiseSigma);
-    std::normal_distribution<Scalar> tauSynNoise(0.0, config.TauSynNoiseSigma);
-    std::normal_distribution<Scalar> vThresholdNoise(0.0, config.VThresholdNoiseSigma);
+    std::normal_distribution<Scalar> weightNoise(Scalar(0.0), config.WeightNoiseSigma);
+    std::normal_distribution<Scalar> tauMemNoise(Scalar(0.0), config.TauMemNoiseSigma);
+    std::normal_distribution<Scalar> tauSynNoise(Scalar(0.0), config.TauSynNoiseSigma);
+    std::normal_distribution<Scalar> vThresholdNoise(Scalar(0.0), config.VThresholdNoiseSigma);
 
     for (auto& neuronWeights : network.Weights)
         for (auto& weight : neuronWeights)

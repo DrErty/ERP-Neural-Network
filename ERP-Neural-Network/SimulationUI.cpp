@@ -238,8 +238,7 @@ void SettingsPanel::Draw(SDL_Renderer* renderer)
     Drawer::SetColor(renderer, Drawer::Col{ 70, 84, 120, 255 });
     Drawer::RenderLine(renderer, w, 0.0f, w, h);
 
-    if (Drawer::g_FontMedium)
-        Drawer::DrawTextSlow(renderer, "Settings", 16.0f, 22.0f, Drawer::Col{ 220, 228, 245, 255 }, Drawer::g_FontMedium, false);
+    Drawer::DrawTextSlow(renderer, "Settings", 16.0f, 22.0f, Drawer::Col{ 220, 228, 245, 255 }, Drawer::g_FontMedium, false);
 
     const Drawer::Col labelCol{ 196, 206, 226, 255 };
     const Drawer::Col trackCol{ 44, 52, 74, 255 };
@@ -255,8 +254,7 @@ void SettingsPanel::Draw(SDL_Renderer* renderer)
         const Setting& s = m_Settings[i];
         const Row row = Layout(i);
 
-        if (Drawer::g_FontSmall)
-            Drawer::DrawTextSlow(renderer, s.Label, row.labelX, row.labelY, labelCol, Drawer::g_FontSmall, false);
+        Drawer::DrawTextSlow(renderer, s.Label, row.labelX, row.labelY, labelCol, Drawer::g_FontSmall, false);
 
         Drawer::SetColor(renderer, trackCol);
         Drawer::FillRect(renderer, row.track.X, row.track.Y, row.track.W, row.track.H);
@@ -271,11 +269,8 @@ void SettingsPanel::Draw(SDL_Renderer* renderer)
         Drawer::SetColor(renderer, boxEdge);
         Drawer::DrawRect(renderer, row.box.X, row.box.Y, row.box.W, row.box.H);
 
-        if (Drawer::g_FontSmall)
-        {
-            const std::string txt = editing ? (m_EditBuffer + "_") : FormatValue(s, s.Get());
-            Drawer::DrawTextSlow(renderer, txt, row.box.X + row.box.W * 0.5f, row.box.Y + 5.0f, valueCol, Drawer::g_FontSmall, true);
-        }
+        const std::string txt = editing ? (m_EditBuffer + "_") : FormatValue(s, s.Get());
+        Drawer::DrawTextSlow(renderer, txt, row.box.X + row.box.W * 0.5f, row.box.Y + 5.0f, valueCol, Drawer::g_FontSmall, true);
     }
 }
 
@@ -327,8 +322,7 @@ void Dashboard::DrawNetwork(SDL_Renderer* renderer, const NetworkGenome& genome)
     Drawer::FillRect(renderer, left, top, w, h);
     Drawer::SetColor(renderer, Drawer::Col{ 70, 84, 120, 255 });
     Drawer::DrawRect(renderer, left, top, w, h);
-    if (Drawer::g_FontSmall)
-        Drawer::DrawTextSlow(renderer, "network", left + 8.0f, top + 6.0f, Drawer::Col{ 200, 215, 240, 230 }, Drawer::g_FontSmall, false);
+    Drawer::DrawTextSlow(renderer, "network", left + 8.0f, top + 6.0f, Drawer::Col{ 200, 215, 240, 230 }, Drawer::g_FontSmall, false);
 
     const float innerLeft = left + 22.0f;
     const float innerTop = top + 36.0f;

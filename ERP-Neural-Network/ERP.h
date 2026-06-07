@@ -25,7 +25,7 @@
 
 #include "Logger.h"
 
-using Scalar = float;
+using Scalar = double;
 
 static constexpr Scalar g_PI = Scalar(3.1415926535897932384626433832);
 

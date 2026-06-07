@@ -243,7 +243,10 @@ static void StartLoop(const Renderer& renderer, GameState& gameState, CartPole& 
         {
             gameState.Skip = false;
             if (resetFunction())
+            {
                 gameState.Quit = true;
+                break;
+            }
         }
 
         updateFunction(frameIndex);
@@ -264,22 +267,31 @@ struct MeasurementBuffers
 {
     RingBuffer TimeBuffer;
     RingBuffer ThetaBuffer;
+    RingBuffer ThetaDotBuffer;
+    RingBuffer XBuffer;
+    RingBuffer XDotBuffer;
 
     bool IsFull() const
     {
         return TimeBuffer.Full();
     }
 
-    void Push(Scalar time, Scalar theta)
+    void Push(Scalar time, const CartPole::PhysicsState& state)
     {
         TimeBuffer.Push(time);
-        ThetaBuffer.Push(theta);
+        ThetaBuffer.Push(state.Theta);
+        ThetaDotBuffer.Push(state.ThetaDot);
+        XBuffer.Push(state.X);
+        XDotBuffer.Push(state.XDot);
     }
 
     void Clear()
     {
-        ThetaBuffer.Clear();
         TimeBuffer.Clear();
+        ThetaBuffer.Clear();
+        ThetaDotBuffer.Clear();
+        XBuffer.Clear();
+        XDotBuffer.Clear();
     }
 
     void SaveToFile(std::string_view filePath, uint32_t generation)
@@ -293,7 +305,7 @@ struct MeasurementBuffers
             stringBuilder.Concat(".txt");
             stringBuilder.Compile();
 
-            IO::SaveCsv(buffer.GetData(), {"Time", "Theta"}, TimeBuffer.Span(), ThetaBuffer.Span());
+            IO::SaveCsv(buffer.GetData(), {"Time", "Theta", "ThetaDot", "X", "XDot"}, TimeBuffer.Span(), ThetaBuffer.Span(), ThetaDotBuffer.Span(), XBuffer.Span(), XDotBuffer.Span());
             ERP_LOG("Saving file to: ", buffer.GetData());
         }
         else
@@ -387,8 +399,6 @@ static void StartTrainingBetter(const Renderer& renderer, GameState& gameState, 
         {
             std::for_each(std::execution::par, units.begin(), units.end(), [&game, &gameState](EvolutionUnit& unit)
                 {
-                    static thread_local std::mt19937 threadLocalRng;
-
                     for (uint32_t idx = 0; idx < MAX_EVALUTIONS_PER_GENOME; idx++)
                     {
                         const std::array<Scalar, INPUT_COUNT> input = game.GetInputs(unit.PlayerIndices[idx]);
@@ -401,7 +411,7 @@ static void StartTrainingBetter(const Renderer& renderer, GameState& gameState, 
             if (units.size() > 0)
             {
                 const CartPole::PhysicsState& state = game.GetState(units[0].PlayerIndices[0]);
-                buffers.Push(game.GetSimTime(), state.Theta);
+                buffers.Push(game.GetSimTime(), state);
             }
         };
     
@@ -422,6 +432,24 @@ static void StartTrainingBetter(const Renderer& renderer, GameState& gameState, 
         IO::SaveGenome(units[0].Genome, FILE_PATH);
         ERP_LOG("Saving genome to file at: ", FILE_PATH);
     }
+}
+
+static bool SharedResetFunction(GameState& gameState, CartPole& game, MeasurementBuffers& buffers, uint32_t& currentPlayerIndex, std::mt19937& playerRng, std::string_view filePath)
+{
+    if (gameState.Generation <= MAX_MEASUREMENTS)
+        buffers.SaveToFile(filePath, gameState.Generation);
+
+    buffers.Clear();
+    game.Reset();
+
+    if (gameState.Generation >= MAX_MEASUREMENTS)
+        return true;
+
+    currentPlayerIndex = game.AddPlayer(true, playerRng, gameState.Generation);
+
+    gameState.Generation += 1;
+
+    return false;
 }
 
 static void StartSim(const Renderer& renderer, GameState& gameState, CartPole& game, std::mt19937& rng)
@@ -446,23 +474,7 @@ static void StartSim(const Renderer& renderer, GameState& gameState, CartPole& g
 
     auto resetFunction = [&]() -> bool
         {
-            if (gameState.Generation <= MAX_MEASUREMENTS)
-            {
-                buffers.SaveToFile("Data\\SIM\\Meting", gameState.Generation);
-            }
-            else
-            {
-                return true;
-            }
-            buffers.Clear();
-
-            game.Reset();
-
-            currentPlayerIndex = game.AddPlayer(true, playerRng, gameState.Generation);
-
-            gameState.Generation += 1;
-
-            return false;
+            return SharedResetFunction(gameState, game, buffers, currentPlayerIndex, playerRng, "Data\\SIM\\Meting");
         };
 
     auto updateFunction = [&](uint64_t frameIndex)
@@ -475,7 +487,7 @@ static void StartSim(const Renderer& renderer, GameState& gameState, CartPole& g
             const CartPole::PhysicsState& state = game.GetState(currentPlayerIndex);
             if (!buffers.IsFull())
             {
-                buffers.Push(game.GetSimTime(), state.Theta);
+                buffers.Push(game.GetSimTime(), state);
             }
             else
             {
@@ -508,23 +520,7 @@ static void StartExp(const Renderer& renderer, GameState& gameState, CartPole& g
 
     auto resetFunction = [&]() -> bool
         {
-            if (gameState.Generation <= MAX_MEASUREMENTS)
-            {
-                buffers.SaveToFile("Data\\EXP\\Meting", gameState.Generation);
-            }
-            else
-            {
-                return true;
-            }
-            buffers.Clear();
-
-            game.Reset();
-
-            currentPlayerIndex = game.AddPlayer(true, playerRng, gameState.Generation);
-
-            gameState.Generation += 1;
-
-            return false;
+            return SharedResetFunction(gameState, game, buffers, currentPlayerIndex, playerRng, "Data\\EXP\\Meting");
         };
 
     auto updateFunction = [&](uint64_t frameIndex)
@@ -568,7 +564,7 @@ static void StartExp(const Renderer& renderer, GameState& gameState, CartPole& g
             const CartPole::PhysicsState& state = game.GetState(currentPlayerIndex);
             if (!buffers.IsFull())
             {
-                buffers.Push(game.GetSimTime(), state.Theta);
+                buffers.Push(game.GetSimTime(), state);
             }
             else
             {
@@ -595,8 +591,8 @@ int main(int argc, char* argv[])
     GameState gameState;
 
     //StartTrainingBetter(renderer, gameState, game, rng);
-    StartSim(renderer, gameState, game, rng);
-    //StartExp(renderer, gameState, game, rng);
+    //StartSim(renderer, gameState, game, rng);
+    StartExp(renderer, gameState, game, rng);
 
     StopSDL(renderer);
     

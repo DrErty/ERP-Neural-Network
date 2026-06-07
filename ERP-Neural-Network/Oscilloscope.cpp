@@ -122,19 +122,16 @@ void Oscilloscope::Draw(SDL_Renderer* renderer, std::span<const Scalar> samples)
     Drawer::SetColor(renderer, m_BorderColor);
     Drawer::DrawRect(renderer, left, top, pxW, pxH);
 
-    if (Drawer::g_FontSmall)
+    if (!m_Title.empty())
+        Drawer::DrawTextSlow(renderer, m_Title, left + 6.0f, top + 4.0f, m_LabelColor, Drawer::g_FontSmall, false);
+
+    if (!samples.empty())
     {
-        if (!m_Title.empty())
-            Drawer::DrawTextSlow(renderer, m_Title, left + 6.0f, top + 4.0f, m_LabelColor, Drawer::g_FontSmall, false);
+        StaticBuffer<char> stringBuffer(32);
+        StringBuilder stringBuilder(stringBuffer);
+        stringBuilder.Concat(static_cast<Scalar>(samples.back()));
+        stringBuilder.Compile();
 
-        if (!samples.empty())
-        {
-            StaticBuffer<char> stringBuffer(32);
-            StringBuilder stringBuilder(stringBuffer);
-            stringBuilder.Concat(static_cast<Scalar>(samples.back()));
-            stringBuilder.Compile();
-
-            Drawer::DrawTextSlow(renderer, stringBuffer.GetData(), right - 56.0f, top + 4.0f, m_LabelColor, Drawer::g_FontSmall, false);
-        }
+        Drawer::DrawTextSlow(renderer, stringBuffer.GetData(), right - 56.0f, top + 4.0f, m_LabelColor, Drawer::g_FontSmall, false);
     }
 }

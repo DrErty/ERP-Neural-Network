@@ -23,7 +23,7 @@ uint32_t CartPole::AddPlayer(bool display, std::mt19937& rng, uint32_t generatio
         range -= Scalar(1.0);
 
         player.State.Theta = g_PI * (range) / Scalar(6.0);
-        ERP_LOG("Starting angle: ", player.State.Theta);
+        ERP_LOG("Starting angle: ", player.State.Theta, ", ", range, ", ", generation);
     }
     else
     {

@@ -7,7 +7,13 @@
 #include <concepts>
 #include <type_traits>
 
+#include <charconv>
+#include <system_error>
+
 #include "Memory/StaticBuffer.h"
+
+template <typename T>
+concept Arithmetic = std::integral<T> || std::floating_point<T>;
 
 class StringBuilder
 {
@@ -29,34 +35,7 @@ public:
 		return *this;
 	}
 
-	template<std::unsigned_integral T>
-	StringBuilder& Concat(T value)
-	{
-		size_t digits = 1;
-
-		T tempValue = value;
-		while (tempValue >= 10)
-		{
-			tempValue /= 10;
-			digits++;
-		}
-
-		VerifyFit(digits);
-
-		tempValue = value;
-
-		for (size_t i = 0; i < digits; i++)
-		{
-			m_Buffer[m_Index + digits - i - 1] = '0' + tempValue % 10;
-			tempValue /= 10;
-		}
-
-		m_Index += digits;
-
-		return *this;
-	}
-
-	template<std::signed_integral T>
+	template<Arithmetic T>
 	StringBuilder& Concat(T value)
 	{
 		if constexpr (std::is_same_v<T, char>)
@@ -68,29 +47,11 @@ public:
 			return *this;
 		}
 
-		if (value < 0)
-		{
-			Concat('-');
-			value = -value;
-		}
-		Concat(static_cast<std::make_unsigned<T>::type>(value));
-		return *this;
-	}
+		auto result = std::to_chars(m_Buffer.GetData() + m_Index, m_Buffer.GetData() + m_Buffer.GetCount(), value);
 
-	StringBuilder& Concat(double value)
-	{
-		double whole;
-		double fract = std::modf(value, &whole);
+		Verify(result.ec == std::errc{});
 
-		if (value < 0.0)
-		{
-			Concat('-');
-			whole = -whole;
-		}
-
-		Concat(static_cast<uint64_t>(whole));
-		Concat('.');
-		Concat(static_cast<uint64_t>(fract * 1000.0));
+		m_Index = (result.ptr - m_Buffer.GetData());
 
 		return *this;
 	}
@@ -113,6 +74,7 @@ public:
 	}
 
 	void VerifyFit(size_t length);
+	void Verify(bool condition);
 private:
 	size_t GetMaxStringSize()
 	{
