@@ -146,29 +146,29 @@
     <Font Include="font.ttf" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="CartPole.cpp" />
-    <ClCompile Include="ContinuousNetwork.cpp" />
-    <ClCompile Include="Drawer.cpp" />
-    <ClCompile Include="Evolution.cpp" />
-    <ClCompile Include="IO.cpp" />
+    <ClCompile Include="Simulation\CartPole.cpp" />
+    <ClCompile Include="Simulation\ContinuousNetwork.cpp" />
+    <ClCompile Include="Simulation\Drawer.cpp" />
+    <ClCompile Include="Simulation\Evolution.cpp" />
+    <ClCompile Include="Simulation\IO.cpp" />
     <ClCompile Include="Logger.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Memory\DynamicAllocator.cpp" />
     <ClCompile Include="Memory\StackAllocator.cpp" />
-    <ClCompile Include="Neuron.cpp" />
-    <ClCompile Include="Oscilloscope.cpp" />
-    <ClCompile Include="RingBuffer.cpp" />
+    <ClCompile Include="Simulation\Neuron.cpp" />
+    <ClCompile Include="Simulation\Oscilloscope.cpp" />
+    <ClCompile Include="Simulation\RingBuffer.cpp" />
     <ClCompile Include="serialib.cpp" />
-    <ClCompile Include="SimulationUI.cpp" />
+    <ClCompile Include="Simulation\SimulationUI.cpp" />
     <ClCompile Include="Utils\StringUtil.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CartPole.h" />
-    <ClInclude Include="ContinuousNetwork.h" />
-    <ClInclude Include="Drawer.h" />
+    <ClInclude Include="Simulation\CartPole.h" />
+    <ClInclude Include="Simulation\ContinuousNetwork.h" />
+    <ClInclude Include="Simulation\Drawer.h" />
     <ClInclude Include="ERP.h" />
-    <ClInclude Include="Evolution.h" />
-    <ClInclude Include="IO.h" />
+    <ClInclude Include="Simulation\Evolution.h" />
+    <ClInclude Include="Simulation\IO.h" />
     <ClInclude Include="Logger.h" />
     <ClInclude Include="Memory\AllocatorUtils.h" />
     <ClInclude Include="Memory\BufferRW.h" />
@@ -178,19 +178,20 @@
     <ClInclude Include="Memory\StackAllocator.h" />
     <ClInclude Include="Memory\StackVector.h" />
     <ClInclude Include="Memory\StaticBuffer.h" />
-    <ClInclude Include="Neuron.h" />
-    <ClInclude Include="Oscilloscope.h" />
-    <ClInclude Include="RingBuffer.h" />
+    <ClInclude Include="Simulation\Neuron.h" />
+    <ClInclude Include="Simulation\Oscilloscope.h" />
+    <ClInclude Include="Simulation\RingBuffer.h" />
     <ClInclude Include="serialib.h" />
-    <ClInclude Include="SimulationUI.h" />
+    <ClInclude Include="Simulation\SimulationUI.h" />
     <ClInclude Include="Utils\BitMath.h" />
     <ClInclude Include="Utils\FileSystem.h" />
     <ClInclude Include="Utils\StringUtil.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Arduino\MainInterface\MainInterface.ino" />
     <None Include="Arduino\SecondaryInterface\SecondaryInterface.ino" />
     <None Include="Arduino\ThirdInterface\ThirdInterface.ino" />
-    <None Include="Genome.csv" />
+    <None Include="Simulation\Genome.csv" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

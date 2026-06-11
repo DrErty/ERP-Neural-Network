@@ -279,7 +279,7 @@ Dashboard::Dashboard(uint32_t windowWidth, uint32_t windowHeight)
     , m_WindowHeight(windowHeight)
     , m_Scope(windowWidth, windowHeight)
 {
-    m_Scope.SetTitle("output");
+    m_Scope.SetTitle("Theta versus Time");
     m_Scope.SetRange(-1.0f, 1.0f);
 }
 
@@ -322,7 +322,7 @@ void Dashboard::DrawNetwork(SDL_Renderer* renderer, const NetworkGenome& genome)
     Drawer::FillRect(renderer, left, top, w, h);
     Drawer::SetColor(renderer, Drawer::Col{ 70, 84, 120, 255 });
     Drawer::DrawRect(renderer, left, top, w, h);
-    Drawer::DrawTextSlow(renderer, "network", left + 8.0f, top + 6.0f, Drawer::Col{ 200, 215, 240, 230 }, Drawer::g_FontSmall, false);
+    Drawer::DrawTextSlow(renderer, "Neural Network", left + 8.0f, top + 6.0f, Drawer::Col{ 200, 215, 240, 230 }, Drawer::g_FontSmall, false);
 
     const float innerLeft = left + 22.0f;
     const float innerTop = top + 36.0f;

@@ -7,17 +7,17 @@
 
 #include "serialib.h"
 
-#include "Drawer.h"
-#include "CartPole.h"
+#include "Simulation/Drawer.h"
+#include "Simulation/CartPole.h"
 
-#include "SimulationUI.h"
+#include "Simulation/SimulationUI.h"
 
-#include "ContinuousNetwork.h"
+#include "Simulation/ContinuousNetwork.h"
 
-#include "Oscilloscope.h"
-#include "RingBuffer.h"
+#include "Simulation/Oscilloscope.h"
+#include "Simulation/RingBuffer.h"
 
-#include "IO.h"
+#include "Simulation/IO.h"
 
 static constexpr const char* FILE_PATH = "Genome.csv";
 
@@ -591,8 +591,8 @@ int main(int argc, char* argv[])
     GameState gameState;
 
     //StartTrainingBetter(renderer, gameState, game, rng);
-    //StartSim(renderer, gameState, game, rng);
-    StartExp(renderer, gameState, game, rng);
+    StartSim(renderer, gameState, game, rng);
+    //StartExp(renderer, gameState, game, rng);
 
     StopSDL(renderer);
     
