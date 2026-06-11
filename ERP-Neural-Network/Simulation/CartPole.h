@@ -17,6 +17,8 @@ public:
 
     CartPole(SDL_Renderer* renderer, uint32_t gameHeight = Drawer::DEFAULT_WINDOW_HEIGHT, uint32_t gameWidth = Drawer::DEFAULT_WINDOW_WIDTH);
 
+    void SetWindowSize(uint32_t width, uint32_t height) { m_GameWidth = width; m_GameHeight = height; }
+
     uint32_t AddPlayer(bool display, std::mt19937& rng, uint32_t generation);
 
     void SetForce(uint32_t playerIndex, Scalar strength);
@@ -29,7 +31,7 @@ public:
     uint32_t PlayerCount() const { return static_cast<uint32_t>(m_Players.size()); }
     uint32_t AliveCount() const { return m_AliveCount; }
 
-    void Step(Scalar dt);
+    void Step(Scalar dt, bool trackingCamera);
     void Render();
 
     bool IsDone() const { return m_Done; }
@@ -56,7 +58,7 @@ private:
 
     static constexpr Scalar KILL_TIME = Scalar(10.0);
 
-    static constexpr bool MOVING_CAMERA = true;
+    //static constexpr bool MOVING_CAMERA = true;
 
     struct Player
     {

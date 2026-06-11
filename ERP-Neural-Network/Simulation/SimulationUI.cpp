@@ -7,47 +7,92 @@ SettingsPanel::SettingsPanel(SDL_Window* window, uint32_t windowWidth, uint32_t 
 {
 }
 
-void SettingsPanel::AddSlider(std::string label, float minValue, float maxValue,
+void SettingsPanel::AddSlider(std::string_view label, float minValue, float maxValue,
     std::function<float()> get, std::function<void(float)> set, bool integer)
 {
-    m_Settings.push_back(Setting{ std::move(label), minValue, maxValue, integer, std::move(get), std::move(set) });
+    Setting setting;
+    setting.Type = Kind::Slider;
+    setting.Label = std::string(label);
+    setting.Min = minValue;
+    setting.Max = maxValue;
+    setting.Integer = integer;
+    setting.Get = std::move(get);
+    setting.Set = std::move(set);
+    m_Settings.push_back(std::move(setting));
 }
 
-void SettingsPanel::AddSlider(std::string label, float minValue, float maxValue, float& value)
+void SettingsPanel::AddSlider(std::string_view label, float minValue, float maxValue, float& value)
 {
-    AddSlider(std::move(label), minValue, maxValue,
+    AddSlider(label, minValue, maxValue,
         [&value] { return value; },
         [&value](float v) { value = v; },
         false);
 }
 
-void SettingsPanel::AddSlider(std::string label, float minValue, float maxValue, int& value)
+void SettingsPanel::AddSlider(std::string_view label, float minValue, float maxValue, int& value)
 {
-    AddSlider(std::move(label), minValue, maxValue,
+    AddSlider(label, minValue, maxValue,
         [&value] { return static_cast<float>(value); },
         [&value](float v) { value = static_cast<int>(std::lround(v)); },
         true);
+}
+
+void SettingsPanel::AddToggle(std::string_view label, std::function<bool()> get, std::function<void(bool)> set)
+{
+    Setting setting;
+    setting.Type = Kind::Toggle;
+    setting.Label = std::string(label);
+    setting.GetBool = std::move(get);
+    setting.SetBool = std::move(set);
+    m_Settings.push_back(std::move(setting));
+}
+
+void SettingsPanel::AddToggle(std::string_view label, bool& value)
+{
+    AddToggle(label,
+        [&value] { return value; },
+        [&value](bool v) { value = v; });
+}
+
+float SettingsPanel::RowHeight(Kind kind)
+{
+    return kind == Kind::Toggle ? 46.0f : 70.0f;
 }
 
 SettingsPanel::Row SettingsPanel::Layout(std::size_t index) const
 {
     constexpr float pad = 16.0f;
     constexpr float titleH = 52.0f;
-    constexpr float rowH = 70.0f;
     constexpr float boxW = 88.0f;
     constexpr float boxH = 26.0f;
     constexpr float trackH = 6.0f;
+    constexpr float switchW = 58.0f;
+    constexpr float switchH = 26.0f;
 
     const float innerW = static_cast<float>(Drawer::SIDEBAR_WIDTH) - 2.0f * pad;
-    const float rowTop = titleH + static_cast<float>(index) * rowH;
+
+    float rowTop = titleH;
+    for (std::size_t i = 0; i < index; ++i)
+        rowTop += RowHeight(m_Settings[i].Type);
 
     const Setting& s = m_Settings[index];
-    const float v = s.Get();
-    const float frac = (s.Max > s.Min) ? std::clamp((v - s.Min) / (s.Max - s.Min), 0.0f, 1.0f) : 0.0f;
 
     Row row;
     row.labelX = pad;
     row.labelY = rowTop + 14.0f;
+
+    if (s.Type == Kind::Toggle)
+    {
+        row.box.W = switchW;
+        row.box.H = switchH;
+        row.box.X = pad + innerW - switchW;
+        row.box.Y = rowTop + (RowHeight(Kind::Toggle) - switchH) * 0.5f;
+        return row;
+    }
+
+    const float v = s.Get();
+    const float frac = (s.Max > s.Min) ? std::clamp((v - s.Min) / (s.Max - s.Min), 0.0f, 1.0f) : 0.0f;
+
     row.track.X = pad;
     row.track.Y = rowTop + 42.0f;
     row.track.W = innerW - boxW - 12.0f;
@@ -140,7 +185,22 @@ void SettingsPanel::HandleEvent(const SDL_Event& event)
         bool hit = false;
         for (std::size_t i = 0; i < m_Settings.size(); ++i)
         {
+            const Setting& s = m_Settings[i];
             const Row row = Layout(i);
+
+            if (s.Type == Kind::Toggle)
+            {
+                if (row.box.Contains(mx, my))
+                {
+                    if (m_EditIndex >= 0)
+                        CommitEdit();
+                    if (s.GetBool && s.SetBool)
+                        s.SetBool(!s.GetBool());
+                    hit = true;
+                    break;
+                }
+                continue;
+            }
 
             if (row.box.Contains(mx, my))
             {
@@ -211,13 +271,9 @@ void SettingsPanel::HandleEvent(const SDL_Event& event)
                     m_EditBuffer.pop_back();
             }
             else if (key == SDLK_RETURN || key == SDLK_KP_ENTER)
-            {
                 CommitEdit();
-            }
             else if (key == SDLK_ESCAPE)
-            {
                 CancelEdit();
-            }
         }
         break;
 
@@ -236,9 +292,10 @@ void SettingsPanel::Draw(SDL_Renderer* renderer)
     Drawer::SetColor(renderer, Drawer::Col{ 18, 22, 34, 235 });
     Drawer::FillRect(renderer, 0.0f, 0.0f, w, h);
     Drawer::SetColor(renderer, Drawer::Col{ 70, 84, 120, 255 });
-    Drawer::RenderLine(renderer, w, 0.0f, w, h);
+    SDL_RenderLine(renderer, w, 0.0f, w, h);
 
-    Drawer::DrawTextSlow(renderer, "Settings", 16.0f, 22.0f, Drawer::Col{ 220, 228, 245, 255 }, Drawer::g_FontMedium, false);
+    if (Drawer::g_FontMedium)
+        Drawer::DrawTextSlow(renderer, "Settings", 16.0f, 22.0f, Drawer::Col{ 220, 228, 245, 255 }, Drawer::g_FontMedium, false);
 
     const Drawer::Col labelCol{ 196, 206, 226, 255 };
     const Drawer::Col trackCol{ 44, 52, 74, 255 };
@@ -248,13 +305,31 @@ void SettingsPanel::Draw(SDL_Renderer* renderer)
     const Drawer::Col boxEdit{ 52, 66, 96, 255 };
     const Drawer::Col boxEdge{ 80, 92, 124, 255 };
     const Drawer::Col valueCol{ 224, 232, 248, 255 };
+    const Drawer::Col onCol{ 90, 200, 130, 255 };
+    const Drawer::Col offCol{ 58, 66, 90, 255 };
+    const Drawer::Col knobCol{ 236, 240, 250, 255 };
 
     for (std::size_t i = 0; i < m_Settings.size(); ++i)
     {
         const Setting& s = m_Settings[i];
         const Row row = Layout(i);
 
-        Drawer::DrawTextSlow(renderer, s.Label, row.labelX, row.labelY, labelCol, Drawer::g_FontSmall, false);
+        if (Drawer::g_FontSmall)
+            Drawer::DrawTextSlow(renderer, s.Label, row.labelX, row.labelY, labelCol, Drawer::g_FontSmall, false);
+
+        if (s.Type == Kind::Toggle)
+        {
+            const bool on = s.GetBool ? s.GetBool() : false;
+            const float r = row.box.H * 0.5f;
+            Drawer::SetColor(renderer, on ? onCol : offCol);
+            Drawer::FillRect(renderer, row.box.X + r, row.box.Y, row.box.W - 2.0f * r, row.box.H);
+            Drawer::DrawCircle(renderer, row.box.X + r, row.box.Y + r, r);
+            Drawer::DrawCircle(renderer, row.box.X + row.box.W - r, row.box.Y + r, r);
+            const float kx = on ? (row.box.X + row.box.W - r) : (row.box.X + r);
+            Drawer::SetColor(renderer, knobCol);
+            Drawer::DrawCircle(renderer, kx, row.box.Y + r, r - 3.0f);
+            continue;
+        }
 
         Drawer::SetColor(renderer, trackCol);
         Drawer::FillRect(renderer, row.track.X, row.track.Y, row.track.W, row.track.H);
@@ -269,8 +344,11 @@ void SettingsPanel::Draw(SDL_Renderer* renderer)
         Drawer::SetColor(renderer, boxEdge);
         Drawer::DrawRect(renderer, row.box.X, row.box.Y, row.box.W, row.box.H);
 
-        const std::string txt = editing ? (m_EditBuffer + "_") : FormatValue(s, s.Get());
-        Drawer::DrawTextSlow(renderer, txt, row.box.X + row.box.W * 0.5f, row.box.Y + 5.0f, valueCol, Drawer::g_FontSmall, true);
+        if (Drawer::g_FontSmall)
+        {
+            const std::string txt = editing ? (m_EditBuffer + "_") : FormatValue(s, s.Get());
+            Drawer::DrawTextSlow(renderer, txt, row.box.X + row.box.W * 0.5f, row.box.Y + 5.0f, valueCol, Drawer::g_FontSmall, true);
+        }
     }
 }
 
@@ -280,7 +358,7 @@ Dashboard::Dashboard(uint32_t windowWidth, uint32_t windowHeight)
     , m_Scope(windowWidth, windowHeight)
 {
     m_Scope.SetTitle("Theta versus Time");
-    m_Scope.SetRange(-1.0f, 1.0f);
+    m_Scope.SetRange(-g_PI, g_PI);
 }
 
 void Dashboard::DrawScope(SDL_Renderer* renderer, std::span<const Scalar> samples)
@@ -344,9 +422,7 @@ void Dashboard::DrawNetwork(SDL_Renderer* renderer, const NetworkGenome& genome)
     pos.reserve(total);
     for (uint32_t l = 0; l < LAYER_COUNT; ++l)
     {
-        const float nx = (LAYER_COUNT == 1)
-            ? innerLeft + innerW * 0.5f
-            : innerLeft + innerW * static_cast<float>(l) / static_cast<float>(LAYER_COUNT - 1);
+        const float nx = (LAYER_COUNT == 1) ? innerLeft + innerW * 0.5f : innerLeft + innerW * static_cast<float>(l) / static_cast<float>(LAYER_COUNT - 1);
         const uint32_t count = LAYER_SIZES[l];
         for (uint32_t k = 0; k < count; ++k)
         {
@@ -411,9 +487,7 @@ void Dashboard::DrawNetwork(SDL_Renderer* renderer, const NetworkGenome& genome)
         for (uint32_t k = 0; k < LAYER_SIZES[l]; ++k)
         {
             const P p = pos[layerStart[l] + k];
-            const Drawer::Col face = (l == 0)
-                ? Drawer::Col{ 150, 158, 178, 255 }
-            : signedColor(genome.Biases[bOff + k], 90);
+            const Drawer::Col face = (l == 0) ? Drawer::Col{ 150, 158, 178, 255 } : signedColor(genome.Biases[bOff + k], 90);
             Drawer::SetColor(renderer, Drawer::Col{ 20, 24, 36, 255 });
             Drawer::DrawCircle(renderer, p.x, p.y, radius + 1.5f);
             Drawer::SetColor(renderer, face);

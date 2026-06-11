@@ -25,6 +25,8 @@ struct Renderer
 {
     SDL_Renderer* Renderer;
     SDL_Window* Window;
+    int WindowWidth = Drawer::DEFAULT_WINDOW_WIDTH;
+    int WindowHeight = Drawer::DEFAULT_WINDOW_HEIGHT;
 };
 
 static void StartSDLTTF()
@@ -105,19 +107,21 @@ struct Frame
     Uint64 Start;
 };
 
-static Frame FrameStart(const Renderer& renderer)
+static Frame FrameStart(Renderer& renderer)
 {
+    SDL_GetWindowSize(renderer.Window, &renderer.WindowWidth, &renderer.WindowHeight);
+
     return { SDL_GetPerformanceCounter() };
 }
 
-static Scalar FrameEnd(const Renderer& renderer, const Frame& frame, bool speedUp)
+static Scalar FrameEnd(const Renderer& renderer, const Frame& frame, bool vSync)
 {
     SDL_RenderPresent(renderer.Renderer);
 
     {
         Uint64 currentTime = SDL_GetPerformanceCounter();
         const Scalar elapsedTime = CalculateDeltaTime(frame.Start, currentTime);
-        if ((elapsedTime < SIM_DT) && (!speedUp))
+        if ((elapsedTime < SIM_DT) && vSync)
             SDL_Delay(static_cast<Uint32>((SIM_DT - elapsedTime) * 1000.0));
     }
 
@@ -130,36 +134,30 @@ static Scalar FrameEnd(const Renderer& renderer, const Frame& frame, bool speedU
 struct GameState
 {
     bool Quit = false;
-    bool SpeedUp = false;
-    bool Render = true;
     bool Skip = false;
-    bool Disable = false;
-    bool TrackingCamera = false;
+    bool DisplayUI = true;
+
+    bool Pause = false;
+    bool VSync = true;
+    bool Render = true;
+    bool DisableInputs = false;
+    bool TrackingCamera = true;
+
     uint32_t Generation = 0;
 };
 
-static void HandleGameInputs(GameState& gameState)
+static void HandleGameInputs(SDL_Event event, GameState& gameState)
 {
-    SDL_Event event;
-    while (SDL_PollEvent(&event))
+    if (event.type == SDL_EVENT_QUIT)
+        gameState.Quit = true;
+    if (event.type == SDL_EVENT_KEY_DOWN)
     {
-        if (event.type == SDL_EVENT_QUIT)
+        if (event.key.key == SDLK_ESCAPE)
             gameState.Quit = true;
-        if (event.type == SDL_EVENT_KEY_DOWN)
-        {
-            if (event.key.key == SDLK_ESCAPE)
-                gameState.Quit = true;
-            if (event.key.key == SDLK_SPACE)
-                gameState.SpeedUp = !gameState.SpeedUp;
-            if (event.key.key == SDLK_R)
-                gameState.Render = !gameState.Render;
-            if (event.key.key == SDLK_P)
-                gameState.Skip = true;
-            if (event.key.key == SDLK_L)
-                gameState.Disable = !gameState.Disable;
-            if (event.key.key == SDLK_T)
-                gameState.TrackingCamera = !gameState.TrackingCamera;
-        }
+        if (event.key.key == SDLK_P)
+            gameState.Skip = true;
+        if (event.key.key == SDLK_SPACE)
+            gameState.DisplayUI = !gameState.DisplayUI;
     }
 }
 
@@ -221,11 +219,18 @@ static Scalar ComputeFitness(const CartPole& game, const EvolutionUnit& unit)
     return gameFitness;
 }
 
-static void StartLoop(const Renderer& renderer, GameState& gameState, CartPole& game,
+static void StartLoop(Renderer& renderer, GameState& gameState, CartPole& game,
     std::function<void(uint64_t frameIndex)> updateFunction,
     std::function<void()> renderFunction,
     std::function<bool()> resetFunction)
 {
+    SettingsPanel settingsPanel(renderer.Window);
+    settingsPanel.AddToggle("Pause", gameState.Pause);
+    settingsPanel.AddToggle("VSync", gameState.VSync);
+    settingsPanel.AddToggle("Rendering Enabled (WARNING!)", gameState.Render);
+    settingsPanel.AddToggle("Disable Inputs", gameState.DisableInputs);
+    settingsPanel.AddToggle("Tracking Camera", gameState.TrackingCamera);
+
     resetFunction();
 
     Scalar lastFrameTime = Scalar(0.0);
@@ -236,8 +241,20 @@ static void StartLoop(const Renderer& renderer, GameState& gameState, CartPole& 
         if (gameState.Render)
             frame = FrameStart(renderer);
 
-        HandleGameInputs(gameState);
-        game.Step(SIM_DT);
+        game.SetWindowSize(renderer.WindowWidth, renderer.WindowHeight);
+        settingsPanel.SetWindowSize(renderer.WindowWidth, renderer.WindowHeight);
+
+        SDL_Event event;
+        while (SDL_PollEvent(&event))
+        {
+            HandleGameInputs(event, gameState);
+            settingsPanel.HandleEvent(event);
+        }
+
+        if (!gameState.Pause)
+        {
+            game.Step(SIM_DT, gameState.TrackingCamera);
+        }
 
         if (game.IsDone() || gameState.Skip || game.GetSimTime() > MAX_GAME_TIME)
         {
@@ -249,16 +266,25 @@ static void StartLoop(const Renderer& renderer, GameState& gameState, CartPole& 
             }
         }
 
-        updateFunction(frameIndex);
+        if (!gameState.Pause)
+        {
+            updateFunction(frameIndex);
+        }
+
         frameIndex++;
 
         if (gameState.Render)
         {
             game.Render();
 
-            renderFunction();
+            if (gameState.DisplayUI)
+            {
+                renderFunction();
 
-            lastFrameTime = FrameEnd(renderer, frame, gameState.SpeedUp);
+                settingsPanel.Draw(renderer.Renderer);
+            }
+
+            lastFrameTime = FrameEnd(renderer, frame, gameState.VSync);
         }
     }
 }
@@ -315,7 +341,7 @@ struct MeasurementBuffers
     }
 };
 
-static void StartTrainingBetter(const Renderer& renderer, GameState& gameState, CartPole& game, std::mt19937& rng)
+static void StartTrainingBetter(Renderer& renderer, GameState& gameState, CartPole& game, std::mt19937& rng)
 {
     Dashboard dashboard;
 
@@ -404,7 +430,9 @@ static void StartTrainingBetter(const Renderer& renderer, GameState& gameState, 
                         const std::array<Scalar, INPUT_COUNT> input = game.GetInputs(unit.PlayerIndices[idx]);
                         std::array<Scalar, OUTPUT_COUNT> output = {};
                         unit.Networks[idx].Evaluate(input, output);
-                        game.SetForce(unit.PlayerIndices[idx], output[0]);
+
+                        if (!gameState.DisableInputs)
+                            game.SetForce(unit.PlayerIndices[idx], output[0]);
                     }
                 });
 
@@ -417,6 +445,8 @@ static void StartTrainingBetter(const Renderer& renderer, GameState& gameState, 
     
     auto renderFunction = [&]()
         {
+            dashboard.SetWindowSize(renderer.WindowWidth, renderer.WindowHeight);
+
             dashboard.DrawScope(renderer.Renderer, buffers.ThetaBuffer.Span());
 
             if (units.size() > 0)
@@ -452,7 +482,7 @@ static bool SharedResetFunction(GameState& gameState, CartPole& game, Measuremen
     return false;
 }
 
-static void StartSim(const Renderer& renderer, GameState& gameState, CartPole& game, std::mt19937& rng)
+static void StartSim(Renderer& renderer, GameState& gameState, CartPole& game, std::mt19937& rng)
 {
     Dashboard dashboard;
 
@@ -461,7 +491,6 @@ static void StartSim(const Renderer& renderer, GameState& gameState, CartPole& g
     IO::GenomeLoadResult genomeLoadResult = IO::LoadGenome(FILE_PATH);
     if (!genomeLoadResult)
     {
-        // TODO: Replace with log function
         ERP_LOG("Error loading genome file: ", genomeLoadResult.Error);
         return;
     }
@@ -482,7 +511,9 @@ static void StartSim(const Renderer& renderer, GameState& gameState, CartPole& g
             const std::array<Scalar, INPUT_COUNT> input = game.GetInputs(currentPlayerIndex);
             std::array<Scalar, OUTPUT_COUNT> output = {};
             network.Evaluate(input, output);
-            game.SetForce(currentPlayerIndex, output[0]);
+
+            if (!gameState.DisableInputs)
+                game.SetForce(currentPlayerIndex, output[0]);
 
             const CartPole::PhysicsState& state = game.GetState(currentPlayerIndex);
             if (!buffers.IsFull())
@@ -497,6 +528,8 @@ static void StartSim(const Renderer& renderer, GameState& gameState, CartPole& g
 
     auto renderFunction = [&]()
         {
+            dashboard.SetWindowSize(renderer.WindowWidth, renderer.WindowHeight);
+
             dashboard.DrawScope(renderer.Renderer, buffers.ThetaBuffer.Span());
             dashboard.DrawNetwork(renderer.Renderer, genomeLoadResult.Genome);
         };
@@ -504,7 +537,7 @@ static void StartSim(const Renderer& renderer, GameState& gameState, CartPole& g
     StartLoop(renderer, gameState, game, updateFunction, renderFunction, resetFunction);
 }
 
-static void StartExp(const Renderer& renderer, GameState& gameState, CartPole& game, std::mt19937& rng)
+static void StartExp(Renderer& renderer, GameState& gameState, CartPole& game, std::mt19937& rng)
 {
     Dashboard dashboard;
 
@@ -544,7 +577,6 @@ static void StartExp(const Renderer& renderer, GameState& gameState, CartPole& g
             StaticBuffer<char> buffer(1024);
             while (serial.available() > 0)
             {
-                // TODO: -1 needed?
                 serial.readString(buffer.GetData(), '\n', static_cast<uint32_t>(buffer.GetCount() - 1));
 
                 if (strncmp(buffer.GetData(), "Error", 5) == 0)
@@ -556,7 +588,9 @@ static void StartExp(const Renderer& renderer, GameState& gameState, CartPole& g
                     Scalar out = Scalar(0.0);
                     const auto [ptr, ec] = std::from_chars(buffer.GetData(), buffer.GetData() + buffer.GetCount(), out);
 
-                    game.SetForce(currentPlayerIndex, out);
+                    if (!gameState.DisableInputs)
+                        game.SetForce(currentPlayerIndex, out);
+
                     ERP_LOG(out);
                 }
             }
@@ -574,6 +608,8 @@ static void StartExp(const Renderer& renderer, GameState& gameState, CartPole& g
 
     auto renderFunction = [&]()
         {
+            dashboard.SetWindowSize(renderer.WindowWidth, renderer.WindowHeight);
+
             dashboard.DrawScope(renderer.Renderer, buffers.ThetaBuffer.Span());
         };
 
@@ -584,7 +620,7 @@ int main(int argc, char* argv[])
 {
     Memory::ThreadStackAllocator.AllocateBlock(static_cast<size_t>(8) * 1024 * 1024);
 
-    const Renderer renderer = StartSDL();
+    Renderer renderer = StartSDL();
     std::mt19937 rng(std::random_device{}());
     CartPole game(renderer.Renderer);
 

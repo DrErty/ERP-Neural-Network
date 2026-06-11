@@ -16,7 +16,7 @@ uint32_t CartPole::AddPlayer(bool display, std::mt19937& rng, uint32_t generatio
     Player player;
     std::uniform_real_distribution<Scalar> distribution(-1.0, 1.0);
 
-    if (true)
+    if (false)
     {
         Scalar range = static_cast<Scalar>(generation) / static_cast<Scalar>(MAX_MEASUREMENTS - 1);
         range *= Scalar(2.0);
@@ -27,7 +27,7 @@ uint32_t CartPole::AddPlayer(bool display, std::mt19937& rng, uint32_t generatio
     }
     else
     {
-        if (playerIndex % 2 == 0)
+        if (playerIndex % 2 != 0)
         {
             player.State.Theta = g_PI * distribution(rng) / Scalar(6.0);
         }
@@ -112,7 +112,7 @@ bool CartPole::IsTerminal(const PhysicsState& state) const
     return std::abs(state.X) > static_cast<Scalar>(POSITION_NORM);
 }
 
-void CartPole::Step(Scalar dt)
+void CartPole::Step(Scalar dt, bool trackingCamera)
 {
     dt /= Scalar(2.0);
 
@@ -120,7 +120,7 @@ void CartPole::Step(Scalar dt)
 
     const Scalar physDt = static_cast<Scalar>(dt) / static_cast<Scalar>(PHYS_STEPS);
 
-    if (m_Players.size() > 0 and MOVING_CAMERA)
+    if (m_Players.size() > 0 and trackingCamera)
     {
         Player& lastBestPlayer = m_Players[0];
         for (uint32_t substep = 0; substep < PHYS_STEPS; ++substep)
@@ -130,6 +130,11 @@ void CartPole::Step(Scalar dt)
             m_CameraX += m_CameraSpeed * physDt;
             m_CameraX += (lastBestPlayer.State.X - m_CameraX) * physDt * Scalar(1.0);
         }
+    }
+    else
+    {
+        m_CameraX = Scalar(0.0);
+        m_CameraSpeed = Scalar(0.0);
     }
 
     for (auto& player : m_Players)
