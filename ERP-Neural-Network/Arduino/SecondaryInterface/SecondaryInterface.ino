@@ -143,6 +143,10 @@ void measureBaseline()
   {
     neuronBaseline[i] = medianOf(samples[i], count[i]);
     Serial.println("Error: Baseline neuron " + String(i) + ": " + String(neuronBaseline[i]) + " Hz (" + String(count[i]) + " samples)");
+    if (neuronBaseline[i] < 5.0)
+    {
+      Serial.println("Error: Baseline below 5Hz, are the neurons connected?");
+    }
   }
 }
 
@@ -313,8 +317,23 @@ void loop()
     {
       Serial.println(String(out));
     }
+
+    /*
+    {
+      float neuronOut[4];
+      for (int i = 0; i < 3; i++)
+      {
+        float v = analogRead(HID_OUT_PINS[i]) * (ADC_REFERENCE / 1023.0);
+        neuronOut[i] = v;
+      }
+      {
+        float v = analogRead(OUT_OUT_PIN) * (ADC_REFERENCE / 1023.0);
+        neuronOut[3] = v;
+      }
+      Serial.println("Neuron:" + String(millis()) + ", " + String(neuronOut[0]) + ", " + String(neuronOut[1]) + ", " + String(neuronOut[2]) + ", " + String(neuronOut[3]));
+    }
+    */
+
     Serial.println("Error: " + String(decodedInValue) + ", " + String(out) + ", freq: " + inFreq);
   }
-
-  delay(5);
 }
