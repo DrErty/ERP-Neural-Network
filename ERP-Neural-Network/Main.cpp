@@ -503,7 +503,7 @@ static void StartSim(Renderer& renderer, GameState& gameState, CartPole& game, s
 
     auto resetFunction = [&]() -> bool
         {
-            return SharedResetFunction(gameState, game, buffers, currentPlayerIndex, playerRng, "Data\\SIM\\Meting");
+            return SharedResetFunction(gameState, game, buffers, currentPlayerIndex, playerRng, "Data\\SIM\\SwingUpMeting");
         };
 
     auto updateFunction = [&](uint64_t frameIndex)
@@ -553,7 +553,7 @@ static void StartExp(Renderer& renderer, GameState& gameState, CartPole& game, s
 
     auto resetFunction = [&]() -> bool
         {
-            return SharedResetFunction(gameState, game, buffers, currentPlayerIndex, playerRng, "Data\\EXP\\Meting");
+            return SharedResetFunction(gameState, game, buffers, currentPlayerIndex, playerRng, "Data\\EXP\\SwingUpMeting");
         };
 
     auto updateFunction = [&](uint64_t frameIndex)
@@ -581,7 +581,7 @@ static void StartExp(Renderer& renderer, GameState& gameState, CartPole& game, s
 
                 if (strncmp(buffer.GetData(), "Error", 5) == 0)
                 {
-                    ERP_LOG(buffer.GetData());
+                    //ERP_LOG(buffer.GetData());
                 }
                 else
                 {
@@ -591,7 +591,7 @@ static void StartExp(Renderer& renderer, GameState& gameState, CartPole& game, s
                     if (!gameState.DisableInputs)
                         game.SetForce(currentPlayerIndex, out);
 
-                    ERP_LOG(out);
+                    //ERP_LOG(out);
                 }
             }
 
@@ -627,8 +627,8 @@ int main(int argc, char* argv[])
     GameState gameState;
 
     //StartTrainingBetter(renderer, gameState, game, rng);
-    StartSim(renderer, gameState, game, rng);
-    //StartExp(renderer, gameState, game, rng);
+    //StartSim(renderer, gameState, game, rng);
+    StartExp(renderer, gameState, game, rng);
 
     StopSDL(renderer);
     

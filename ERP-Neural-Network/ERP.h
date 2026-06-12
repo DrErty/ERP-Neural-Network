@@ -53,7 +53,7 @@ static constexpr Scalar MAX_OUTPUT_RATE_OFFSET = Scalar(20.0);
 static constexpr Scalar MIN_INPUT_RATE = Scalar(0.0);
 static constexpr Scalar MAX_INPUT_RATE = Scalar(60.0);
 
-static constexpr uint32_t MAX_MEASUREMENTS = 10;
+static constexpr uint32_t MAX_MEASUREMENTS = 11;
 
 template<typename... Args>
 static void ExitFatal(const char* file, uint32_t line, Args&&... args)

@@ -16,13 +16,16 @@ uint32_t CartPole::AddPlayer(bool display, std::mt19937& rng, uint32_t generatio
     Player player;
     std::uniform_real_distribution<Scalar> distribution(-1.0, 1.0);
 
-    if (false)
+    if (true)
     {
         Scalar range = static_cast<Scalar>(generation) / static_cast<Scalar>(MAX_MEASUREMENTS - 1);
         range *= Scalar(2.0);
         range -= Scalar(1.0);
 
-        player.State.Theta = g_PI * (range) / Scalar(6.0);
+        if (false)
+            player.State.Theta = g_PI * (range) / Scalar(6.0);
+        else
+            player.State.Theta = g_PI * (1.0 + 0.1 * range);
         ERP_LOG("Starting angle: ", player.State.Theta, ", ", range, ", ", generation);
     }
     else

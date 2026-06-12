@@ -27,10 +27,10 @@ constexpr float SPIKE_THRESHOLD_V = 1.0;
 constexpr float SPIKE_RESET_V = 0.5;
 
 constexpr unsigned long PULSE_WIDTH_US = 5000 / 3;
-constexpr unsigned long FREQ_TIMEOUT_US = 500 * 1000;
+constexpr unsigned long long FREQ_TIMEOUT_US = 200000;
 
 constexpr float F_BASELINE = 10.0;
-constexpr float F_OFFSET = 5.0;
+constexpr float F_OFFSET = 1.0;
 constexpr float FAIL_FREQUENCY = (F_BASELINE - F_OFFSET) / 2.0;
 
 constexpr float DECODE_SCALE = 1.0;
@@ -229,8 +229,10 @@ float pollFrequency(int pin, int idx)
     outputChannels[idx].armed = true;
   }
 
-  if (outputChannels[idx].hasSpike && (now - outputChannels[idx].lastSpike) > FREQ_TIMEOUT_US) {
+  //if (outputChannels[idx].hasSpike && (now - outputChannels[idx].lastSpike) > FREQ_TIMEOUT_US) {
+  if ((now - outputChannels[idx].lastSpike) > FREQ_TIMEOUT_US) {
     outputChannels[idx].freq = 0.0;
+    //Serial.println("Error: " + String(now - outputChannels[idx].lastSpike));
   }
 
   return outputChannels[idx].freq;
@@ -275,7 +277,7 @@ void loop()
     // TODO: FIX
     if (inFreq < FAIL_FREQUENCY)
     {
-      Serial.println("Error: Hidden neuron frequency below 5 Hz. Did you disconnect the neuron? Current frequency: " + String(inFreq));
+      Serial.println("Error: Hidden below 5 Hz." + String(inFreq));
       out = 0.0;
     }
 
@@ -306,7 +308,7 @@ void loop()
     if (inFreq < FAIL_FREQUENCY)
     {
       out = 0.0;
-      Serial.println("Error: Output neuron frequency below 5 Hz. Did you disconnect the neuron? Current frequency: " + String(inFreq));
+      Serial.println("Error: Output below 5 Hz." + String(inFreq));
     }
 
     //if (random(0, 11) == 10)
@@ -334,6 +336,6 @@ void loop()
     }
     */
 
-    Serial.println("Error: " + String(decodedInValue) + ", " + String(out) + ", freq: " + inFreq);
+    //Serial.println("Error: " + String(decodedInValue) + ", " + String(out) + ", freq: " + inFreq);
   }
 }
