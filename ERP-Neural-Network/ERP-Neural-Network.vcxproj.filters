@@ -136,9 +136,8 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Arduino\SecondaryInterface\SecondaryInterface.ino" />
-    <None Include="Arduino\ThirdInterface\ThirdInterface.ino" />
+    <None Include="Arduino\TestInterface\TestInterface.ino" />
     <None Include="Simulation\Genome.csv" />
-    <None Include="Arduino\MainInterface\MainInterface.ino" />
+    <None Include="Arduino\OldInterface\OldInterface.ino" />
   </ItemGroup>
 </Project>

@@ -3,6 +3,30 @@
 #include <algorithm>
 #include <cmath>
 
+CartPole::PhysicsState CartPole::PhysicsState::operator+(const CartPole::PhysicsState& b) const
+{
+    const CartPole::PhysicsState& a = *this;
+
+    CartPole::PhysicsState r;
+    r.X = a.X + b.X;
+    r.XDot = a.XDot + b.XDot;
+    r.Theta = a.Theta + b.Theta;
+    r.ThetaDot = a.ThetaDot + b.ThetaDot;
+    return r;
+}
+
+CartPole::PhysicsState CartPole::PhysicsState::operator*(Scalar k) const
+{
+    const CartPole::PhysicsState& s = *this;
+
+    CartPole::PhysicsState r;
+    r.X = s.X * k;
+    r.XDot = s.XDot * k;
+    r.Theta = s.Theta * k;
+    r.ThetaDot = s.ThetaDot * k;
+    return r;
+}
+
 CartPole::CartPole(SDL_Renderer* renderer, uint32_t gameHeight, uint32_t gameWidth)
     : m_Renderer(renderer)
     , m_GameHeight(gameHeight)
@@ -16,16 +40,13 @@ uint32_t CartPole::AddPlayer(bool display, std::mt19937& rng, uint32_t generatio
     Player player;
     std::uniform_real_distribution<Scalar> distribution(-1.0, 1.0);
 
-    if (true)
+    if (false)
     {
         Scalar range = static_cast<Scalar>(generation) / static_cast<Scalar>(MAX_MEASUREMENTS - 1);
         range *= Scalar(2.0);
         range -= Scalar(1.0);
 
-        if (false)
-            player.State.Theta = g_PI * (range) / Scalar(6.0);
-        else
-            player.State.Theta = g_PI * (1.0 + 0.1 * range);
+        player.State.Theta = g_PI * (range) / Scalar(6.0);
         ERP_LOG("Starting angle: ", player.State.Theta, ", ", range, ", ", generation);
     }
     else
@@ -86,27 +107,59 @@ const CartPole::PhysicsState& CartPole::GetState(uint32_t playerIndex) const
     return m_Players[playerIndex].State;
 }
 
-CartPole::PhysicsState CartPole::StepPhysics(const PhysicsState& state, Scalar force, Scalar dt) const
+void CartPole::WrapAngle(Scalar& theta)
+{
+    if (theta >= g_PI)
+        theta -= g_PI * 2.0;
+    else if (theta <= -g_PI)
+        theta += g_PI * 2.0;
+}
+
+CartPole::PhysicsState CartPole::EvaluateDerivative(const PhysicsState& state, Scalar force) const
 {
     const Scalar sinTheta = std::sin(state.Theta);
     const Scalar cosTheta = std::cos(state.Theta);
     const Scalar denominator = CART_MASS + POLE_MASS * sinTheta * sinTheta;
 
-    const Scalar xDotDot = (force + POLE_MASS * POLE_HALF_LENGTH * state.ThetaDot * state.ThetaDot * sinTheta - POLE_MASS * GRAVITY_ACCEL * sinTheta * cosTheta) / denominator;
-    const Scalar thetaDotDot = ((CART_MASS + POLE_MASS) * GRAVITY_ACCEL * sinTheta - force * cosTheta - POLE_MASS * POLE_HALF_LENGTH * state.ThetaDot * state.ThetaDot * sinTheta * cosTheta) / (POLE_HALF_LENGTH * denominator);
+    const Scalar xDotDot = (force
+        + POLE_MASS * POLE_HALF_LENGTH * state.ThetaDot * state.ThetaDot * sinTheta
+        - POLE_MASS * GRAVITY_ACCEL * sinTheta * cosTheta) / denominator;
 
-    PhysicsState next;
-    next.X = state.X + state.XDot * dt;
-    next.XDot = state.XDot + xDotDot * dt;
-    next.Theta = state.Theta + state.ThetaDot * dt;
-    next.ThetaDot = state.ThetaDot + thetaDotDot * dt;
+    const Scalar thetaDotDot = ((CART_MASS + POLE_MASS) * GRAVITY_ACCEL * sinTheta
+        - force * cosTheta
+        - POLE_MASS * POLE_HALF_LENGTH * state.ThetaDot * state.ThetaDot * sinTheta * cosTheta)
+        / (POLE_HALF_LENGTH * denominator);
 
-    if (next.Theta >= g_PI)
-        next.Theta -= g_PI * 2.0;
+    PhysicsState derivative;
+    derivative.X = state.XDot;
+    derivative.XDot = xDotDot;
+    derivative.Theta = state.ThetaDot;
+    derivative.ThetaDot = thetaDotDot;
+    return derivative;
+}
 
-    if (next.Theta <= -g_PI)
-        next.Theta += g_PI * 2.0;
+CartPole::PhysicsState CartPole::StepEuler(const PhysicsState& state, Scalar force, Scalar dt) const
+{
+    const PhysicsState k = EvaluateDerivative(state, force);
 
+    PhysicsState next = state + k * dt;
+    WrapAngle(next.Theta);
+    return next;
+}
+
+CartPole::PhysicsState CartPole::StepRK4(const PhysicsState& state, Scalar force, Scalar dt) const
+{
+    const Scalar halfDt = dt * Scalar(0.5);
+
+    const PhysicsState k1 = EvaluateDerivative(state, force);
+    const PhysicsState k2 = EvaluateDerivative(state + k1 * halfDt, force);
+    const PhysicsState k3 = EvaluateDerivative(state + k2 * halfDt, force);
+    const PhysicsState k4 = EvaluateDerivative(state + k3 * dt, force);
+
+    const PhysicsState increment = (k1 + (k2 + k3) * Scalar(2.0) + k4) * (dt / Scalar(6.0));
+
+    PhysicsState next = state + increment;
+    WrapAngle(next.Theta);
     return next;
 }
 
@@ -151,12 +204,12 @@ void CartPole::Step(Scalar dt, bool trackingCamera)
             for (uint32_t substep = 0; substep < PHYS_STEPS; ++substep)
             {
                 const Scalar appliedForce = player->PendingForce;
-                player->State = StepPhysics(player->State, appliedForce, physDt);
+                player->State = StepRK4(player->State, appliedForce, physDt);
 
                 const Scalar positionFraction = Scalar(1.0) - std::min(Scalar(1.0), std::abs(player->State.X) / POSITION_NORM);
 
-                const Scalar E_pole = Scalar(0.5) * POLE_MASS * POLE_HALF_LENGTH * POLE_HALF_LENGTH * player->State.ThetaDot * player->State.ThetaDot - POLE_MASS * GRAVITY_ACCEL * POLE_HALF_LENGTH * std::cos(player->State.Theta);
-                const Scalar E_target = -POLE_MASS * GRAVITY_ACCEL * POLE_HALF_LENGTH;
+                const Scalar E_pole = Scalar(0.5) * POLE_MASS * POLE_HALF_LENGTH * POLE_HALF_LENGTH * player->State.ThetaDot * player->State.ThetaDot + POLE_MASS * GRAVITY_ACCEL * POLE_HALF_LENGTH * std::cos(player->State.Theta);
+                const Scalar E_target = POLE_MASS * GRAVITY_ACCEL * POLE_HALF_LENGTH;
                 const Scalar E_max = POLE_MASS * GRAVITY_ACCEL * POLE_HALF_LENGTH * 2.0;
                 const Scalar energyReward = Scalar(1.0) - std::min(Scalar(1.0), std::abs(E_pole - E_target) / E_max);
 

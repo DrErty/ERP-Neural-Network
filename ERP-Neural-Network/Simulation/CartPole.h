@@ -13,6 +13,9 @@ public:
         Scalar XDot = Scalar(0.0);
         Scalar Theta = Scalar(0.0);
         Scalar ThetaDot = Scalar(0.0);
+
+        CartPole::PhysicsState operator+(const CartPole::PhysicsState& b) const;
+        CartPole::PhysicsState operator*(Scalar k) const;
     };
 
     CartPole(SDL_Renderer* renderer, uint32_t gameHeight = Drawer::DEFAULT_WINDOW_HEIGHT, uint32_t gameWidth = Drawer::DEFAULT_WINDOW_WIDTH);
@@ -40,7 +43,7 @@ public:
     void Reset();
     void KillPlayer(uint32_t playerIndex);
 private:
-    static constexpr uint32_t PHYS_STEPS = 16;
+    static constexpr uint32_t PHYS_STEPS = 1;
 
     static constexpr Scalar CART_MASS = Scalar(1.0);
     static constexpr Scalar POLE_MASS = Scalar(0.1);
@@ -70,7 +73,14 @@ private:
         bool Display = true;
     };
 
-    PhysicsState StepPhysics(const PhysicsState& state, Scalar force, Scalar dt) const;
+    static void WrapAngle(Scalar& theta);
+
+    PhysicsState EvaluateDerivative(const PhysicsState& state, Scalar force) const;
+
+    CartPole::PhysicsState StepEuler(const PhysicsState& state, Scalar force, Scalar dt) const;
+    CartPole::PhysicsState StepRK4(const PhysicsState& state, Scalar force, Scalar dt) const;
+
+    //PhysicsState StepPhysics(const PhysicsState& state, Scalar force, Scalar dt) const;
     bool IsTerminal(const PhysicsState& state) const;
 
     const Player* FindBestPlayer() const;

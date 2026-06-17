@@ -627,8 +627,8 @@ int main(int argc, char* argv[])
     GameState gameState;
 
     //StartTrainingBetter(renderer, gameState, game, rng);
-    //StartSim(renderer, gameState, game, rng);
-    StartExp(renderer, gameState, game, rng);
+    StartSim(renderer, gameState, game, rng);
+    //StartExp(renderer, gameState, game, rng);
 
     StopSDL(renderer);
     
