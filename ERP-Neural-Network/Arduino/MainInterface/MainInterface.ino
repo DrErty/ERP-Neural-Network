@@ -1,6 +1,6 @@
 // Author: DrErty
 // Date: June 2026
-// This is the debug Arduino controller, only used to spot discrepancies between the ideal simulated network and the experimental one. Not used in any measurements.
+// This is the main Arduino controller, this is used in all measurements in the article
 
 struct PulseChannel
 {
@@ -41,14 +41,6 @@ constexpr float F_OFFSET = 10.0;
 constexpr float FAIL_FREQUENCY = 1.0;
 
 constexpr float DECODE_SCALE = 1.0;
-
-constexpr float HIDDEN_WEIGHTS[3][3] = {
-  {-1.0, -1.0, -1.0},
-  {-1.0, 1.0, 1.0},
-  {-1.0, -1.0, -1.0}
-};
-
-constexpr float OUTPUT_WEIGHTS[3] = {-1.0, 0.3862, -1.0};
 
 constexpr float HIDDEN_BIAS[3] = {1.0, 1.0, 0.0};
 constexpr float OUTPUT_BIAS = 0.0;
@@ -239,25 +231,10 @@ void loop()
 
     float decodedInValue = decodeToValue(inFreq, neuronIndex);
     decodedInValue = signActivate(decodedInValue + HIDDEN_BIAS[neuronIndex]);
-
-    // BEGIN
-    float out = HIDDEN_BIAS[neuronIndex];
-    for (int j = 0; j < 3; j++)
-    {
-      out += HIDDEN_WEIGHTS[neuronIndex][j] * inputBuff[j];
-    }
-    out = signActivate(out);
-    // END
-
-    // TODO: FIX
-    if (inFreq < FAIL_FREQUENCY)
-    {
-      out = -1.0;
-    }
     
-    hiddenBuff[neuronIndex] = out;
+    hiddenBuff[neuronIndex] = decodedInValue;
 
-    float outFreq = encodeToFreq(out * OUTPUT_WEIGHTS[neuronIndex]);
+    float outFreq = encodeToFreq(decodedInValue);
     if (calibrating)
     {
       outFreq = encodeToFreq(0);
@@ -265,10 +242,7 @@ void loop()
     pollPulse(outFreq, OUT_IN_PINS[neuronIndex], neuronIndex + 3);
   }
 
-  //Serial.println("Error: Info: " + String(hiddenBuff[]));
-
   float finalOutput = 0.0;
-  float finalOutput2 = 0.0;
   {
     int neuronIndex = 3;
 
@@ -278,24 +252,8 @@ void loop()
 
     float decodedInValue = decodeToValue(inFreq, neuronIndex);
     decodedInValue = signActivate(decodedInValue + OUTPUT_BIAS);
-
-    // BEGIN
-    float out = OUTPUT_BIAS;
-    for (int j = 0; j < 3; j++)
-    {
-      out += OUTPUT_WEIGHTS[j] * hiddenBuff[j];
-    }
-    out = signActivate(out);
-    // END
-
-    // TODO: FIX
-    if (inFreq < FAIL_FREQUENCY)
-    {
-      out = -1.0;
-    }
     
-    finalOutput = out;
-    finalOutput2 = decodedInValue;
+    finalOutput = decodedInValue;
   }
 
   {
@@ -312,7 +270,7 @@ void loop()
     }
     outString += String(finalOutput);
     outString += ",";
-    outString += String(finalOutput2);
+    outString += String(0.0);
     outString += ",";
     for (int i{0}; i < 4; ++i)
     {

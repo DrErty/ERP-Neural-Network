@@ -2,7 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
-#include <utility>   // std::swap
+#include <utility>
 
 void NetworkGenome::Randomize(std::mt19937& rng, Scalar range)
 {
@@ -63,7 +63,6 @@ void ContinuousNetwork::SetFromGenome(const NetworkGenome& genome)
     m_Biases = genome.Biases;
 }
 
-// ReLu
 Scalar ContinuousNetwork::Activation(Scalar x)
 {
     if (x < 0.0)

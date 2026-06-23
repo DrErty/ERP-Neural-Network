@@ -34,10 +34,11 @@ CartPole::CartPole(SDL_Renderer* renderer, uint32_t gameHeight, uint32_t gameWid
 {
 }
 
-uint32_t CartPole::AddPlayer(bool display, std::mt19937& rng, uint32_t generation)
+uint32_t CartPole::AddPlayer(bool display, std::mt19937& rng, uint32_t generation, bool killable)
 {
     const uint32_t playerIndex = static_cast<uint32_t>(m_Players.size());
     Player player;
+    player.Killable = killable;
     std::uniform_real_distribution<Scalar> distribution(-1.0, 1.0);
 
     if (false)
@@ -168,8 +169,18 @@ bool CartPole::IsTerminal(const PhysicsState& state) const
     return std::abs(state.X) > static_cast<Scalar>(POSITION_NORM);
 }
 
+void CartPole::KillPlayer(Player& player)
+{
+    if (player.Alive and player.Killable)
+    {
+        player.Alive = false;
+        --m_AliveCount;
+    }
+}
+
 void CartPole::Step(Scalar dt, bool trackingCamera)
 {
+    // TODO: Temp fix
     dt /= Scalar(2.0);
 
     if (m_Done) return;
@@ -181,10 +192,13 @@ void CartPole::Step(Scalar dt, bool trackingCamera)
         Player& lastBestPlayer = m_Players[0];
         for (uint32_t substep = 0; substep < PHYS_STEPS; ++substep)
         {
-            m_CameraSpeed += (lastBestPlayer.State.XDot - m_CameraSpeed) * physDt * Scalar(1.0);
+            constexpr Scalar speedMult = Scalar(2.0);
+            constexpr Scalar posMult = Scalar(2.0);
+
+            m_CameraSpeed += (lastBestPlayer.State.XDot - m_CameraSpeed) * physDt * speedMult;
 
             m_CameraX += m_CameraSpeed * physDt;
-            m_CameraX += (lastBestPlayer.State.X - m_CameraX) * physDt * Scalar(1.0);
+            m_CameraX += (lastBestPlayer.State.X - m_CameraX) * physDt * posMult;
         }
     }
     else
@@ -229,20 +243,17 @@ void CartPole::Step(Scalar dt, bool trackingCamera)
 
         if ((player.State.Theta > KILL_ANGLE or player.State.Theta < -KILL_ANGLE) and player.HeldUp)
         {
-            player.Alive = false;
-            --m_AliveCount;
+            KillPlayer(player);
         }
 
         if ((m_SimTime > KILL_TIME) and (not player.HeldUp))
         {
-            player.Alive = false;
-            --m_AliveCount;
+            KillPlayer(player);
         }
 
         if (IsTerminal(player.State) and player.Alive)
         {
-            //player.Alive = false;
-            //--m_AliveCount;
+            KillPlayer(player);
         }
     }
 
@@ -284,11 +295,8 @@ void CartPole::Reset()
 void CartPole::KillPlayer(uint32_t playerIndex)
 {
     Assert(playerIndex < m_Players.size());
-    if (m_Players[playerIndex].Alive)
-    {
-        m_Players[playerIndex].Alive = false;
-        --m_AliveCount;
-    }
+    
+    KillPlayer(m_Players[playerIndex]);
 }
 
 const CartPole::Player* CartPole::FindBestPlayer() const

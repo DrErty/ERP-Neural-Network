@@ -142,8 +142,14 @@ struct GameState
     bool Render = true;
     bool DisableInputs = false;
     bool TrackingCamera = true;
+    bool Calibrating = false;
 
     uint32_t Generation = 0;
+
+    std::array<Scalar, 4> NeuronFrequencies{};
+    Scalar NeuronOutput{};
+    Scalar NeuronOutput2{};
+    std::array<Scalar, 4> NeuronBaseline{};
 };
 
 static void HandleGameInputs(SDL_Event event, GameState& gameState)
@@ -231,6 +237,21 @@ static void StartLoop(Renderer& renderer, GameState& gameState, CartPole& game,
     settingsPanel.AddToggle("Disable Inputs", gameState.DisableInputs);
     settingsPanel.AddToggle("Tracking Camera", gameState.TrackingCamera);
 
+    settingsPanel.AddInfo("Hidden Neuron Frequency 1", gameState.NeuronFrequencies[0]);
+    settingsPanel.AddInfo("Hidden Neuron Baseline 1", gameState.NeuronBaseline[0]);
+
+    settingsPanel.AddInfo("Hidden Neuron Frequency 2", gameState.NeuronFrequencies[1]);
+    settingsPanel.AddInfo("Hidden Neuron Baseline 2", gameState.NeuronBaseline[1]);
+
+    settingsPanel.AddInfo("Hidden Neuron Frequency 3", gameState.NeuronFrequencies[2]);
+    settingsPanel.AddInfo("Hidden Neuron Baseline 3", gameState.NeuronBaseline[2]);
+
+    settingsPanel.AddInfo("Output Neuron Frequency", gameState.NeuronFrequencies[3]);
+    settingsPanel.AddInfo("Output Neuron Baseline", gameState.NeuronBaseline[3]);
+
+    settingsPanel.AddInfo("Output Neuron 1", gameState.NeuronOutput);
+    settingsPanel.AddInfo("Output Neuron 2", gameState.NeuronOutput2);
+
     resetFunction();
 
     Scalar lastFrameTime = Scalar(0.0);
@@ -251,7 +272,7 @@ static void StartLoop(Renderer& renderer, GameState& gameState, CartPole& game,
             settingsPanel.HandleEvent(event);
         }
 
-        if (!gameState.Pause)
+        if (!gameState.Pause and !gameState.Calibrating)
         {
             game.Step(SIM_DT, gameState.TrackingCamera);
         }
@@ -266,7 +287,7 @@ static void StartLoop(Renderer& renderer, GameState& gameState, CartPole& game,
             }
         }
 
-        if (!gameState.Pause)
+        //if (!gameState.Pause and !gameState.Calibrating)
         {
             updateFunction(frameIndex);
         }
@@ -282,6 +303,14 @@ static void StartLoop(Renderer& renderer, GameState& gameState, CartPole& game,
                 renderFunction();
 
                 settingsPanel.Draw(renderer.Renderer);
+            }
+
+            if (gameState.Calibrating)
+            {
+                Drawer::DrawTextSlow(renderer.Renderer, "Calibrating...",
+                    static_cast<float>(renderer.WindowWidth) / 2.0f,
+                    static_cast<float>(renderer.WindowHeight) / 2.0f,
+                    { 255, 255, 255, 255 }, Drawer::g_FontMedium, true);
             }
 
             lastFrameTime = FrameEnd(renderer, frame, gameState.VSync);
@@ -464,7 +493,7 @@ static void StartTrainingBetter(Renderer& renderer, GameState& gameState, CartPo
     }
 }
 
-static bool SharedResetFunction(GameState& gameState, CartPole& game, MeasurementBuffers& buffers, uint32_t& currentPlayerIndex, std::mt19937& playerRng, std::string_view filePath)
+static bool SharedResetFunction(GameState& gameState, CartPole& game, MeasurementBuffers& buffers, uint32_t& currentPlayerIndex, std::mt19937& playerRng, std::string_view filePath, bool killable = true)
 {
     if (gameState.Generation <= MAX_MEASUREMENTS)
         buffers.SaveToFile(filePath, gameState.Generation);
@@ -472,10 +501,10 @@ static bool SharedResetFunction(GameState& gameState, CartPole& game, Measuremen
     buffers.Clear();
     game.Reset();
 
-    if (gameState.Generation >= MAX_MEASUREMENTS)
-        return true;
+    //if (gameState.Generation >= MAX_MEASUREMENTS)
+    //    return true;
 
-    currentPlayerIndex = game.AddPlayer(true, playerRng, gameState.Generation);
+    currentPlayerIndex = game.AddPlayer(true, playerRng, gameState.Generation, killable);
 
     gameState.Generation += 1;
 
@@ -549,11 +578,13 @@ static void StartExp(Renderer& renderer, GameState& gameState, CartPole& game, s
     std::mt19937 playerRng(0);
 
     serialib serial;
-    serial.openDevice("COM3", 115200);
+    serial.openDevice("COM4", 115200);
+
+    serial.flushReceiver();
 
     auto resetFunction = [&]() -> bool
         {
-            return SharedResetFunction(gameState, game, buffers, currentPlayerIndex, playerRng, "Data\\EXP\\SwingUpMeting");
+            return SharedResetFunction(gameState, game, buffers, currentPlayerIndex, playerRng, "Data\\EXP\\SwingUpMeting", false);
         };
 
     auto updateFunction = [&](uint64_t frameIndex)
@@ -574,22 +605,72 @@ static void StartExp(Renderer& renderer, GameState& gameState, CartPole& game, s
                 serial.writeString(serialString.GetData());
             }
 
-            StaticBuffer<char> buffer(1024);
-            while (serial.available() > 0)
+            std::vector<std::string> linesList;
             {
-                serial.readString(buffer.GetData(), '\n', static_cast<uint32_t>(buffer.GetCount() - 1));
+                std::string line;
+                while (serial.available() > 0)
+                {
+                    char c;
+                    serial.readChar(&c);
 
-                if (strncmp(buffer.GetData(), "Error", 5) == 0)
+                    if (c == '\n')
+                    {
+                        linesList.push_back(line);
+                        line.clear();
+                        continue;
+                    }
+
+                    if (c != '\r')
+                        line += c;
+                }
+            }
+
+            for (auto& line : linesList)
+            {
+                if (strncmp(line.data(), "Error", 5) == 0)
                 {
                     //ERP_LOG(buffer.GetData());
                 }
-                else
+                else if (strncmp(line.data(), "Calibrating", 11) == 0)
                 {
-                    Scalar out = Scalar(0.0);
-                    const auto [ptr, ec] = std::from_chars(buffer.GetData(), buffer.GetData() + buffer.GetCount(), out);
+                    gameState.Calibrating = true;
+                }
+                else if (strncmp(line.data(), "Neuron", 6) == 0)
+                {
+                    gameState.Calibrating = false;
+
+                    // Read scalars
+                    std::array<Scalar, 10> output{};
+
+                    size_t head = 7;
+                    for (size_t idx = 0; idx < output.size(); idx++)
+                    {
+                        size_t count = 0;
+                        while (line[head + count] != ',' and head + count < line.length())
+                            ++count;
+
+                        std::string_view window{ line.data() + head, line.data() + head + count};
+                        const auto [ptr, ec] = std::from_chars(window.data(), window.data() + window.length(), output[idx]);
+
+                        // Skip comma;
+                        head += count + 1;
+                    }
+
+                    gameState.NeuronFrequencies[0] = output[0];
+                    gameState.NeuronFrequencies[1] = output[1];
+                    gameState.NeuronFrequencies[2] = output[2];
+                    gameState.NeuronFrequencies[3] = output[3];
+
+                    gameState.NeuronOutput = output[4];
+                    gameState.NeuronOutput2 = output[5];
+
+                    gameState.NeuronBaseline[0] = output[6];
+                    gameState.NeuronBaseline[1] = output[7];
+                    gameState.NeuronBaseline[2] = output[8];
+                    gameState.NeuronBaseline[3] = output[9];
 
                     if (!gameState.DisableInputs)
-                        game.SetForce(currentPlayerIndex, out);
+                        game.SetForce(currentPlayerIndex, gameState.NeuronOutput);
 
                     //ERP_LOG(out);
                 }
@@ -627,8 +708,8 @@ int main(int argc, char* argv[])
     GameState gameState;
 
     //StartTrainingBetter(renderer, gameState, game, rng);
-    StartSim(renderer, gameState, game, rng);
-    //StartExp(renderer, gameState, game, rng);
+    //StartSim(renderer, gameState, game, rng);
+    StartExp(renderer, gameState, game, rng);
 
     StopSDL(renderer);
     

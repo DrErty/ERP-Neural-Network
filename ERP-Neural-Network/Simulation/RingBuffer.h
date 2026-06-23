@@ -5,7 +5,7 @@
 class RingBuffer
 {
 public:
-    static constexpr std::size_t CAPACITY = 1500;
+    static constexpr std::size_t CAPACITY = 1024 * 4;
 
     RingBuffer();
 

@@ -54,6 +54,17 @@ void SettingsPanel::AddToggle(std::string_view label, bool& value)
         [&value](bool v) { value = v; });
 }
 
+void SettingsPanel::AddInfo(std::string_view label, Scalar& value)
+{
+    Setting setting;
+    setting.Type = Kind::Info;
+    setting.Label = std::string(label);
+    setting.Get = [&value] { return value; };
+    setting.Set = [&value](float v) { value = v; };
+
+    m_Settings.push_back(std::move(setting));
+}
+
 float SettingsPanel::RowHeight(Kind kind)
 {
     return kind == Kind::Toggle ? 46.0f : 70.0f;
@@ -188,6 +199,9 @@ void SettingsPanel::HandleEvent(const SDL_Event& event)
             const Setting& s = m_Settings[i];
             const Row row = Layout(i);
 
+            if (s.Type == Kind::Info)
+                continue;
+
             if (s.Type == Kind::Toggle)
             {
                 if (row.box.Contains(mx, my))
@@ -295,7 +309,7 @@ void SettingsPanel::Draw(SDL_Renderer* renderer)
     SDL_RenderLine(renderer, w, 0.0f, w, h);
 
     if (Drawer::g_FontMedium)
-        Drawer::DrawTextSlow(renderer, "Settings", 16.0f, 22.0f, Drawer::Col{ 220, 228, 245, 255 }, Drawer::g_FontMedium, false);
+        Drawer::DrawTextSlow(renderer, "Settings & Info", 16.0f, 22.0f, Drawer::Col{ 220, 228, 245, 255 }, Drawer::g_FontMedium, false);
 
     const Drawer::Col labelCol{ 196, 206, 226, 255 };
     const Drawer::Col trackCol{ 44, 52, 74, 255 };
@@ -314,8 +328,7 @@ void SettingsPanel::Draw(SDL_Renderer* renderer)
         const Setting& s = m_Settings[i];
         const Row row = Layout(i);
 
-        if (Drawer::g_FontSmall)
-            Drawer::DrawTextSlow(renderer, s.Label, row.labelX, row.labelY, labelCol, Drawer::g_FontSmall, false);
+        Drawer::DrawTextSlow(renderer, s.Label, row.labelX, row.labelY, labelCol, Drawer::g_FontSmall, false);
 
         if (s.Type == Kind::Toggle)
         {
@@ -328,23 +341,26 @@ void SettingsPanel::Draw(SDL_Renderer* renderer)
             const float kx = on ? (row.box.X + row.box.W - r) : (row.box.X + r);
             Drawer::SetColor(renderer, knobCol);
             Drawer::DrawCircle(renderer, kx, row.box.Y + r, r - 3.0f);
-            continue;
         }
 
-        Drawer::SetColor(renderer, trackCol);
-        Drawer::FillRect(renderer, row.track.X, row.track.Y, row.track.W, row.track.H);
-        Drawer::SetColor(renderer, fillCol);
-        Drawer::FillRect(renderer, row.track.X, row.track.Y, row.handleX - row.track.X, row.track.H);
-        Drawer::SetColor(renderer, handleCol);
-        Drawer::DrawCircle(renderer, row.handleX, row.handleY, 9.0f);
+        bool editing{};
+        if (s.Type == Kind::Slider)
+        {
+            Drawer::SetColor(renderer, trackCol);
+            Drawer::FillRect(renderer, row.track.X, row.track.Y, row.track.W, row.track.H);
+            Drawer::SetColor(renderer, fillCol);
+            Drawer::FillRect(renderer, row.track.X, row.track.Y, row.handleX - row.track.X, row.track.H);
+            Drawer::SetColor(renderer, handleCol);
+            Drawer::DrawCircle(renderer, row.handleX, row.handleY, 9.0f);
 
-        const bool editing = (m_EditIndex == static_cast<int>(i));
-        Drawer::SetColor(renderer, editing ? boxEdit : boxCol);
-        Drawer::FillRect(renderer, row.box.X, row.box.Y, row.box.W, row.box.H);
-        Drawer::SetColor(renderer, boxEdge);
-        Drawer::DrawRect(renderer, row.box.X, row.box.Y, row.box.W, row.box.H);
+            editing = (m_EditIndex == static_cast<int>(i));
+            Drawer::SetColor(renderer, editing ? boxEdit : boxCol);
+            Drawer::FillRect(renderer, row.box.X, row.box.Y, row.box.W, row.box.H);
+            Drawer::SetColor(renderer, boxEdge);
+            Drawer::DrawRect(renderer, row.box.X, row.box.Y, row.box.W, row.box.H);
+        }
 
-        if (Drawer::g_FontSmall)
+        if (s.Type == Kind::Slider or s.Type == Kind::Info)
         {
             const std::string txt = editing ? (m_EditBuffer + "_") : FormatValue(s, s.Get());
             Drawer::DrawTextSlow(renderer, txt, row.box.X + row.box.W * 0.5f, row.box.Y + 5.0f, valueCol, Drawer::g_FontSmall, true);

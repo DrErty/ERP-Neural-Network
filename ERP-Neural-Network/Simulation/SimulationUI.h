@@ -27,17 +27,20 @@ public:
     void AddSlider(std::string_view label, float minValue, float maxValue,
         std::function<float()> get, std::function<void(float)> set,
         bool integer = false);
+
     void AddSlider(std::string_view label, float minValue, float maxValue, float& value);
     void AddSlider(std::string_view label, float minValue, float maxValue, int& value);
 
     void AddToggle(std::string_view label, std::function<bool()> get, std::function<void(bool)> set);
     void AddToggle(std::string_view label, bool& value);
 
+    void AddInfo(std::string_view label, Scalar& value);
+
     void HandleEvent(const SDL_Event& event);
     void Draw(SDL_Renderer* renderer);
 
 private:
-    enum class Kind { Slider, Toggle };
+    enum class Kind { Slider, Toggle, Info };
 
     struct Setting
     {

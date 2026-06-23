@@ -22,7 +22,7 @@ public:
 
     void SetWindowSize(uint32_t width, uint32_t height) { m_GameWidth = width; m_GameHeight = height; }
 
-    uint32_t AddPlayer(bool display, std::mt19937& rng, uint32_t generation);
+    uint32_t AddPlayer(bool display, std::mt19937& rng, uint32_t generation, bool killable = true);
 
     void SetForce(uint32_t playerIndex, Scalar strength);
     std::array<Scalar, INPUT_COUNT> GetInputs(uint32_t playerIndex) const;
@@ -71,6 +71,7 @@ private:
         Scalar PendingForce = 0.0f;
         bool Alive = true;
         bool Display = true;
+        bool Killable = true;
     };
 
     static void WrapAngle(Scalar& theta);
@@ -82,6 +83,8 @@ private:
 
     //PhysicsState StepPhysics(const PhysicsState& state, Scalar force, Scalar dt) const;
     bool IsTerminal(const PhysicsState& state) const;
+
+    void KillPlayer(Player& player);
 
     const Player* FindBestPlayer() const;
     float WorldToScreenX(Scalar worldX, Scalar cameraX) const;
