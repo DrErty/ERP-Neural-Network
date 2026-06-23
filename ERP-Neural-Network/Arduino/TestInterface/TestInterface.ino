@@ -37,7 +37,7 @@ constexpr unsigned long long CALIB_PERIOD_MS = 60000;
 constexpr unsigned long long CALIB_TIMEOUT_MS = 5000;
 
 constexpr float F_BASELINE = 10.0;
-constexpr float F_OFFSET = 10.0;
+constexpr float F_OFFSET = 5.0;
 constexpr float FAIL_FREQUENCY = 1.0;
 
 constexpr float DECODE_SCALE = 1.0;
